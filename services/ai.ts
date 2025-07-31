@@ -267,6 +267,17 @@ export async function performCodeReview(files: File[]): Promise<ReviewComment[]>
 
     The 'type' field must be one of these values: 'potential_issue', 'refactor_suggestion', 'nitpick', 'verification', or 'other'.
 
+    COMMENT TYPE DEFINITIONS:
+    - 'potential_issue': A bug or an error that could cause problems.
+    - 'refactor_suggestion': A suggestion to improve the code's structure, readability, or performance without changing its external behavior. This is for making good code better. DO NOT just describe the change that was made. The comment should explain WHY the refactor is an improvement.
+    - 'nitpick': A minor stylistic preference or a trivial issue.
+    - 'verification': A comment to confirm that a piece of code is correct and well-implemented, especially if it's complex.
+    - 'other': Any other type of comment.
+
+    IMPORTANT RULES FOR COMMENTS:
+    1. Your comments should provide new insights, not just summarize the diff. The user already knows what they changed.
+    2. Focus on improvements, potential bugs, and best practices.
+
     IMPORTANT RULES FOR SUGGESTIONS:
     1. For comments of type 'refactor_suggestion' or 'potential_issue', you MUST provide a suggested code change.
     2. Add a 'suggestions' field containing an array with a single string.
