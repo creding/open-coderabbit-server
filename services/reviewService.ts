@@ -1,22 +1,9 @@
 import { EventEmitter } from "events";
+import { performCodeReview, generateReviewSummary, generateReviewTitle, generatePrObjective, generateWalkThrough } from "./ai";
+import { serverEvent, reviewStatus, ReviewComment, File, AdditionalDetailsPayload, ServerEvent, EventPayload, ReviewStatus } from "../types";
 import * as diff from "diff";
-import {
-  performCodeReview,
-  generateReviewSummary,
-  generateReviewTitle,
-  generatePrObjective,
-  generateWalkThrough,
-} from "./ai";
-import {
-  serverEvent,
-  reviewStatus,
-  File,
-  ReviewComment,
-  AdditionalDetailsPayload,
-  ServerEvent,
-  EventPayload,
-  ReviewStatus,
-} from "../types";
+import { logger } from "../utils/logger";
+import { monitor } from "../utils/monitor";
 
 export class ReviewService {
   constructor(
@@ -30,7 +17,7 @@ export class ReviewService {
     payload: EventPayload,
     endedAt?: string
   ) {
-    console.log(`📡 Emitting ${type} for review ${this.reviewId}`);
+    logger.debug(`Emitting ${type}`, { reviewId: this.reviewId, clientId: this.clientId });
     this.eventEmitter.emit("reviewEvent", {
       type,
       payload,
@@ -52,7 +39,10 @@ export class ReviewService {
       const title = await generateReviewTitle(files);
       this.emitEvent(serverEvent.PR_TITLE, title);
     } catch (error) {
-      console.error("Error generating review title:", error);
+      logger.error("Error generating review title", {
+        reviewId: this.reviewId,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
 
     this.emitEvent(serverEvent.THINKING_UPDATE, {
@@ -62,7 +52,10 @@ export class ReviewService {
       const objective = await generatePrObjective(files);
       this.emitEvent(serverEvent.PR_OBJECTIVE, objective);
     } catch (error) {
-      console.error("Error generating PR objective:", error);
+      logger.error("Error generating PR objective", {
+        reviewId: this.reviewId,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
 
     this.emitEvent(serverEvent.THINKING_UPDATE, {
@@ -72,7 +65,10 @@ export class ReviewService {
       const walkThrough = await generateWalkThrough(files);
       this.emitEvent(serverEvent.WALK_THROUGH, walkThrough);
     } catch (error) {
-      console.error("Error generating walkthrough:", error);
+      logger.error("Error generating walkthrough", {
+        reviewId: this.reviewId,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -207,7 +203,10 @@ export class ReviewService {
 
       this.emitEvent(serverEvent.ADDITIONAL_DETAILS, payload);
     } catch (error) {
-      console.error("Error during comment categorization:", error);
+      logger.error("Error during comment categorization", {
+        reviewId: this.reviewId,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -222,7 +221,10 @@ export class ReviewService {
       });
       this.emitEvent(serverEvent.SUMMARY_COMMENT, { summary: summary.summary });
     } catch (error) {
-      console.error("Error generating review summary:", error);
+      logger.error("Error generating review summary", {
+        reviewId: this.reviewId,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -260,23 +262,68 @@ export class ReviewService {
   }
 
   public async run(files: File[]) {
+    const startTime = Date.now();
+    
     try {
+      logger.info('Starting code review', {
+        reviewId: this.reviewId,
+        clientId: this.clientId,
+        fileCount: files.length,
+        totalSize: files.reduce((sum, f) => sum + f.fileContent.length, 0)
+      });
+      
       this.emitEvent(serverEvent.STATE_UPDATE, {
         status: reviewStatus.IN_PROGRESS,
       });
       this.sendStatusUpdate("summarizing");
+      
+      // Generate PR details with monitoring
+      const prStartTime = Date.now();
       await this.generatePrDetails(files);
+      logger.debug('PR details generated', {
+        reviewId: this.reviewId,
+        duration: Date.now() - prStartTime
+      });
+      
       this.sendStatusUpdate("reviewing");
 
+      // Perform code review with monitoring
+      const reviewStartTime = Date.now();
       const allComments = await performCodeReview(files);
+      logger.debug('Code review completed', {
+        reviewId: this.reviewId,
+        commentCount: allComments.length,
+        duration: Date.now() - reviewStartTime
+      });
 
       allComments.sort((a: ReviewComment, b: ReviewComment) => b.startLine - a.startLine);
       await this.processAndSendComments(allComments, files);
       await this.categorizeAndSendDetails(allComments, files);
       await this.generateAndSendSummary(allComments);
+      
+      const totalDuration = Date.now() - startTime;
+      monitor.completeReview(this.reviewId, allComments.length);
+      
+      logger.info('Review completed successfully', {
+        reviewId: this.reviewId,
+        clientId: this.clientId,
+        duration: totalDuration,
+        commentCount: allComments.length
+      });
+      
       this.sendCompletionEvent(reviewStatus.COMPLETED);
     } catch (error) {
-      console.error("Error during AI code review:", error);
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      logger.error('Review failed', {
+        reviewId: this.reviewId,
+        clientId: this.clientId,
+        error: errorMessage,
+        duration
+      });
+      
+      monitor.failReview(this.reviewId, errorMessage);
       this.handleError(error);
     }
   }

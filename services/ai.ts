@@ -5,6 +5,7 @@ import { env } from "../constants";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { issueType, ReviewComment } from "../types";
+import { retryWithBackoff, isRetryableAIError, RetryableError } from "../utils/retry";
 
 // Create a single, shared AI client and model instance
 const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
@@ -109,15 +110,27 @@ export async function generateReviewTitle(files: File[]): Promise<string> {
   console.log('🤖 Sending title prompt to AI:');
   console.log(prompt);
 
-  const { object } = await generateObject({
-    model: model,
-    schema: reviewTitleSchema,
-    prompt: prompt,
+  return await retryWithBackoff(async () => {
+    try {
+      const { object } = await generateObject({
+        model: model,
+        schema: reviewTitleSchema,
+        prompt: prompt,
+      });
+
+      console.log('🤖 AI Title Response received:', JSON.stringify(object, null, 2));
+      return object.title;
+    } catch (error) {
+      console.error('Error generating review title:', error);
+      throw new RetryableError(
+        `Failed to generate review title: ${error instanceof Error ? error.message : String(error)}`,
+        isRetryableAIError(error)
+      );
+    }
+  }, {
+    maxRetries: 3,
+    retryCondition: isRetryableAIError
   });
-
-  console.log('🤖 AI Title Response received:', JSON.stringify(object, null, 2));
-
-  return object.title;
 }
 
 /**
@@ -150,18 +163,31 @@ export async function generateReviewSummary(comments: ReviewComment[]): Promise<
   console.log(prompt);
   console.log('=== SUMMARY PROMPT END ===');
 
-  const { object } = await generateObject({
-    model: model,
-    schema: reviewSummarySchema,
-    prompt: prompt,
+  return await retryWithBackoff(async () => {
+    try {
+      const { object } = await generateObject({
+        model: model,
+        schema: reviewSummarySchema,
+        prompt: prompt,
+      });
+
+      console.log('🤖 AI Summary Response received:');
+      console.log('=== AI SUMMARY RESPONSE START ===');
+      console.log(JSON.stringify(object, null, 2));
+      console.log('=== AI SUMMARY RESPONSE END ===');
+
+      return object;
+    } catch (error) {
+      console.error('Error generating review summary:', error);
+      throw new RetryableError(
+        `Failed to generate review summary: ${error instanceof Error ? error.message : String(error)}`,
+        isRetryableAIError(error)
+      );
+    }
+  }, {
+    maxRetries: 3,
+    retryCondition: isRetryableAIError
   });
-
-  console.log('🤖 AI Summary Response received:');
-  console.log('=== AI SUMMARY RESPONSE START ===');
-  console.log(JSON.stringify(object, null, 2));
-  console.log('=== AI SUMMARY RESPONSE END ===');
-
-  return object;
 }
 
 export async function generatePrObjective(files: File[]): Promise<string> {
@@ -176,13 +202,26 @@ export async function generatePrObjective(files: File[]): Promise<string> {
     ${fileSummary}
   `;
 
-  const { object } = await generateObject({
-    model: model,
-    schema: prObjectiveSchema,
-    prompt: prompt,
-  });
+  return await retryWithBackoff(async () => {
+    try {
+      const { object } = await generateObject({
+        model: model,
+        schema: prObjectiveSchema,
+        prompt: prompt,
+      });
 
-  return object.objective;
+      return object.objective;
+    } catch (error) {
+      console.error('Error generating PR objective:', error);
+      throw new RetryableError(
+        `Failed to generate PR objective: ${error instanceof Error ? error.message : String(error)}`,
+        isRetryableAIError(error)
+      );
+    }
+  }, {
+    maxRetries: 3,
+    retryCondition: isRetryableAIError
+  });
 }
 
 export async function generateWalkThrough(files: File[]): Promise<string> {
@@ -198,13 +237,26 @@ export async function generateWalkThrough(files: File[]): Promise<string> {
     ${fileSummary}
   `;
 
-  const { object } = await generateObject({
-    model: model,
-    schema: walkThroughSchema,
-    prompt: prompt,
-  });
+  return await retryWithBackoff(async () => {
+    try {
+      const { object } = await generateObject({
+        model: model,
+        schema: walkThroughSchema,
+        prompt: prompt,
+      });
 
-  return object.walkThrough;
+      return object.walkThrough;
+    } catch (error) {
+      console.error('Error generating walkthrough:', error);
+      throw new RetryableError(
+        `Failed to generate walkthrough: ${error instanceof Error ? error.message : String(error)}`,
+        isRetryableAIError(error)
+      );
+    }
+  }, {
+    maxRetries: 3,
+    retryCondition: isRetryableAIError
+  });
 }
 
 export async function performCodeReview(files: File[]): Promise<ReviewComment[]> {
@@ -270,30 +322,43 @@ export async function performCodeReview(files: File[]): Promise<ReviewComment[]>
   console.log(prompt);
   console.log("=== PROMPT END ===");
 
-  const { object } = await generateObject({
-    model: model,
-    schema: z.array(reviewCommentSchema),
-    prompt: prompt,
-  });
+  return await retryWithBackoff(async () => {
+    try {
+      const { object } = await generateObject({
+        model: model,
+        schema: z.array(reviewCommentSchema),
+        prompt: prompt,
+      });
 
-  console.log("🤖 AI Response received:");
-  console.log("=== AI RESPONSE START ===");
-  console.log(JSON.stringify(object, null, 2));
-  console.log("=== AI RESPONSE END ===");
+      console.log("🤖 AI Response received:");
+      console.log("=== AI RESPONSE START ===");
+      console.log(JSON.stringify(object, null, 2));
+      console.log("=== AI RESPONSE END ===");
 
-  // Log each comment's suggestions specifically
-  object.forEach((comment, index) => {
-    console.log(`📝 Comment ${index + 1}:`);
-    console.log(`  File: ${comment.filename}`);
-    console.log(`  Lines: ${comment.startLine}-${comment.endLine}`);
-    console.log(`  Type: ${comment.type}`);
-    console.log(`  Has suggestions: ${comment.suggestions ? 'YES' : 'NO'}`);
-    if (comment.suggestions && comment.suggestions.length > 0) {
-      console.log(`  Suggestion content:`);
-      console.log(`  "${comment.suggestions[0]}"`);
-      console.log(`  Suggestion length: ${comment.suggestions[0].length} characters`);
+      // Log each comment's suggestions specifically
+      object.forEach((comment, index) => {
+        console.log(`📝 Comment ${index + 1}:`);
+        console.log(`  File: ${comment.filename}`);
+        console.log(`  Lines: ${comment.startLine}-${comment.endLine}`);
+        console.log(`  Type: ${comment.type}`);
+        console.log(`  Has suggestions: ${comment.suggestions ? 'YES' : 'NO'}`);
+        if (comment.suggestions && comment.suggestions.length > 0) {
+          console.log(`  Suggestion content:`);
+          console.log(`  "${comment.suggestions[0]}"`);
+          console.log(`  Suggestion length: ${comment.suggestions[0].length} characters`);
+        }
+      });
+
+      return object as ReviewComment[];
+    } catch (error) {
+      console.error('Error performing code review:', error);
+      throw new RetryableError(
+        `Failed to perform code review: ${error instanceof Error ? error.message : String(error)}`,
+        isRetryableAIError(error)
+      );
     }
+  }, {
+    maxRetries: 3,
+    retryCondition: isRetryableAIError
   });
-
-  return object as ReviewComment[];
 }
