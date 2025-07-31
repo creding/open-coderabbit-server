@@ -157,21 +157,38 @@ server.listen(port, env.HOST, () => {
 });
 
 // Graceful shutdown handling
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
-});
+let isShuttingDown = false;
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
+function gracefulShutdown(signal: string) {
+  if (isShuttingDown) {
+    logger.warn(`${signal} received again, forcing exit`);
+    process.exit(1);
+  }
+  
+  isShuttingDown = true;
+  logger.info(`${signal} received, shutting down gracefully`);
+  
+  // Set a timeout to force exit if shutdown takes too long
+  const shutdownTimeout = setTimeout(() => {
+    logger.error('Shutdown timeout reached, forcing exit');
+    process.exit(1);
+  }, 10000); // 10 seconds
+  
+  // Close WebSocket server first
+  wss.close(() => {
+    logger.info('WebSocket server closed');
+    
+    // Then close HTTP server
+    server.close(() => {
+      logger.info('HTTP server closed');
+      clearTimeout(shutdownTimeout);
+      process.exit(0);
+    });
   });
-});
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
