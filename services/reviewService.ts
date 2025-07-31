@@ -1,11 +1,6 @@
 import { EventEmitter } from "events";
-import {
-  performCodeReview,
-  generateReviewSummary,
-  generateReviewTitle,
-  generatePrObjective,
-  generateWalkThrough,
-} from "./ai";
+import { getAiProvider } from "./ai/index";
+import { AiProvider } from "./ai/types";
 import {
   serverEvent,
   reviewStatus,
@@ -21,11 +16,15 @@ import { logger } from "../utils/logger";
 import { monitor } from "../utils/monitor";
 
 export class ReviewService {
+  private aiProvider: AiProvider;
+
   constructor(
     private eventEmitter: EventEmitter,
     private reviewId: string,
     private clientId: string
-  ) {}
+  ) {
+    this.aiProvider = getAiProvider();
+  }
 
   private emitEvent(
     type: ServerEvent,
@@ -54,7 +53,7 @@ export class ReviewService {
       message: "Generating a title for your review...",
     });
     try {
-      const title = await generateReviewTitle(files);
+      const title = await this.aiProvider.generateReviewTitle(files);
       this.emitEvent(serverEvent.PR_TITLE, title);
     } catch (error) {
       logger.error("Error generating review title", {
@@ -67,7 +66,7 @@ export class ReviewService {
       message: "Formulating the objective...",
     });
     try {
-      const objective = await generatePrObjective(files);
+      const objective = await this.aiProvider.generatePrObjective(files);
       this.emitEvent(serverEvent.PR_OBJECTIVE, objective);
     } catch (error) {
       logger.error("Error generating PR objective", {
@@ -80,7 +79,7 @@ export class ReviewService {
       message: "Preparing a walkthrough...",
     });
     try {
-      const walkThrough = await generateWalkThrough(files);
+      const walkThrough = await this.aiProvider.generateWalkThrough(files);
       this.emitEvent(serverEvent.WALK_THROUGH, walkThrough);
     } catch (error) {
       logger.error("Error generating walkthrough", {
@@ -134,9 +133,7 @@ export class ReviewService {
         codegenInstructions: comment.codegenInstructions,
       };
 
-      if (comment.type !== "nitpick") {
-        this.emitEvent(serverEvent.REVIEW_COMMENT, payload);
-      }
+      this.emitEvent(serverEvent.REVIEW_COMMENT, payload);
     }
   }
 
@@ -237,7 +234,7 @@ export class ReviewService {
       message: "Generating a summary of the review...",
     });
     try {
-      const summary = await generateReviewSummary(comments);
+      const summary = await this.aiProvider.generateReviewSummary(comments);
       this.emitEvent(serverEvent.SHORT_SUMMARY, {
         summary: summary.shortSummary,
       });
@@ -311,7 +308,7 @@ export class ReviewService {
 
       // Perform code review with monitoring
       const reviewStartTime = Date.now();
-      const allComments = await performCodeReview(files);
+      const allComments = await this.aiProvider.performCodeReview(files);
       logger.debug("Code review completed", {
         reviewId: this.reviewId,
         commentCount: allComments.length,

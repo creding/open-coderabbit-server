@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const envSchema = z.object({
+  AI_PROVIDER: z.enum(["google", "openai", "openrouter"]).default("google"),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
   // Server configuration
   PORT: z.string().default("5353"),
   HOST: z.string().default("localhost"),
