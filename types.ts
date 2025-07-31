@@ -1,6 +1,36 @@
 import { z } from "zod";
 
-// This file serves as the single source of truth for types shared between the server and the extension.
+// 1. Zod Schemas
+export const fileSchema = z.object({
+  filename: z.string(),
+  diff: z.string(),
+  newFile: z.boolean(),
+  renamedFile: z.boolean(),
+  deletedFile: z.boolean(),
+  fileContent: z.string(),
+});
+
+export const extensionEventSchema = z.object({
+  userId: z.string(),
+  userName: z.string(),
+  email: z.string(),
+  clientId: z.string(),
+  eventType: z.string(),
+  reviewId: z.string(),
+  files: z.array(fileSchema).optional(),
+  hostUrl: z.string(),
+  provider: z.string(),
+  providerUserId: z.string(),
+  remoteUrl: z.string().optional(),
+  host: z.string(),
+  version: z.string(),
+  headCommitId: z.string().optional(),
+  baseCommitId: z.string().optional(),
+  allFiles: z.array(fileSchema).optional(),
+});
+
+export type File = z.infer<typeof fileSchema>;
+export type ExtensionEvent = z.infer<typeof extensionEventSchema>;
 
 export const issueType = {
   POTENTIAL_ISSUE: "potential_issue",
@@ -22,18 +52,6 @@ export const reviewCommentSchema = z.object({
 
 export type ReviewComment = z.infer<typeof reviewCommentSchema>;
 
-export const fileSchema = z.object({
-  filename: z.string(),
-  diff: z.string(),
-  newFile: z.boolean(),
-  renamedFile: z.boolean(),
-  deletedFile: z.boolean(),
-  fileContent: z.string(),
-});
-
-export type File = z.infer<typeof fileSchema>;
-
-// 4. Strongly-typed Payloads
 export type ReviewStatusUpdatePayload = { reviewStatus: string };
 export type ThinkingUpdatePayload = { message: string };
 export type PrTitlePayload = string;
@@ -60,7 +78,7 @@ export type EventPayload =
   | ErrorPayload
   | RateLimitExceededPayload
   | ReviewCompletedPayload
-  | {}; // For empty payloads
+  | {};
 
 export const serverEvent = {
   REVIEW_COMPLETED: "review_completed",
