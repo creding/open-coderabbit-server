@@ -14,3 +14,6 @@ server/dist/
 
 # Environment variables
 .env
+
+extension/extension.js
+extension/index.js

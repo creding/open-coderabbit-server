@@ -1,4 +1,38 @@
+import { z } from 'zod';
+
 // This file serves as the single source of truth for types shared between the server and the extension.
+
+export const issueType = {
+  POTENTIAL_ISSUE: 'potential_issue',
+  REFACTOR_SUGGESTION: 'refactor_suggestion',
+  NITPICK: 'nitpick',
+  VERIFICATION: 'verification',
+  OTHER: 'other',
+} as const;
+
+export const reviewCommentSchema = z.object({
+  filename: z.string(),
+  startLine: z.number(),
+  endLine: z.number(),
+  comment: z.string(),
+  type: z.nativeEnum(issueType),
+  suggestions: z.array(z.string()).optional(),
+  codegenInstructions: z.string().optional(),
+});
+
+export type ReviewComment = z.infer<typeof reviewCommentSchema>;
+
+export const fileSchema = z.object({
+  filename: z.string(),
+  diff: z.string(),
+  newFile: z.boolean(),
+  renamedFile: z.boolean(),
+  deletedFile: z.boolean(),
+  fileContent: z.string(),
+});
+
+export type File = z.infer<typeof fileSchema>;
+
 
 export const serverEvent = {
   REVIEW_COMPLETED: 'review_completed',
@@ -28,26 +62,7 @@ export const reviewStatus = {
 
 export type ReviewStatus = typeof reviewStatus[keyof typeof reviewStatus];
 
-export const issueType = {
-  POTENTIAL_ISSUE: 'potential_issue',
-  REFACTOR_SUGGESTION: 'refactor_suggestion',
-  NITPICK: 'nitpick',
-  VERIFICATION: 'verification',
-  OTHER: 'other',
-} as const;
 
-export type IssueType = typeof issueType[keyof typeof issueType];
-
-export interface ReviewComment {
-  filename: string;
-  startLine: number;
-  endLine: number;
-  comment: string;
-  type: IssueType;
-  suggestions?: string[];
-  suggestionDiff?: string;
-  codegenInstructions?: string;
-}
 
 export interface AdditionalDetailsPayload {
   counts: Record<string, number>;

@@ -6,6 +6,10 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { issueType, ReviewComment } from "../types";
 
+// Create a single, shared AI client and model instance
+const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
+const model = google(env.AI_MODEL);
+
 // Zod schema for files, matching the one in your router
 const fileSchema = z.object({
   filename: z.string(),
@@ -91,7 +95,6 @@ export const reviewTitleSchema = z.object({
  * @returns The generated title as a string.
  */
 export async function generateReviewTitle(files: File[]): Promise<string> {
-  const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
   const fileSummary = files.map(f => `File: ${f.filename}\nDiff: ${f.diff}`).join('\n\n');
 
   const prompt = `
@@ -107,7 +110,7 @@ export async function generateReviewTitle(files: File[]): Promise<string> {
   console.log(prompt);
 
   const { object } = await generateObject({
-    model: google(env.AI_MODEL),
+    model: model,
     schema: reviewTitleSchema,
     prompt: prompt,
   });
@@ -123,7 +126,6 @@ export async function generateReviewTitle(files: File[]): Promise<string> {
  * @returns An object containing a full summary and a short summary.
  */
 export async function generateReviewSummary(comments: ReviewComment[]): Promise<{ summary: string, shortSummary: string }> {
-  const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
   if (comments.length === 0) {
     return {
       summary: '✅ Great work! No issues were found in the code.',
@@ -149,7 +151,7 @@ export async function generateReviewSummary(comments: ReviewComment[]): Promise<
   console.log('=== SUMMARY PROMPT END ===');
 
   const { object } = await generateObject({
-    model: google(env.AI_MODEL),
+    model: model,
     schema: reviewSummarySchema,
     prompt: prompt,
   });
@@ -163,7 +165,6 @@ export async function generateReviewSummary(comments: ReviewComment[]): Promise<
 }
 
 export async function generatePrObjective(files: File[]): Promise<string> {
-  const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
   const fileSummary = files.map(f => `File: ${f.filename}\nDiff: ${f.diff}`).join('\n\n');
 
   const prompt = `
@@ -176,7 +177,7 @@ export async function generatePrObjective(files: File[]): Promise<string> {
   `;
 
   const { object } = await generateObject({
-    model: google(env.AI_MODEL),
+    model: model,
     schema: prObjectiveSchema,
     prompt: prompt,
   });
@@ -185,7 +186,6 @@ export async function generatePrObjective(files: File[]): Promise<string> {
 }
 
 export async function generateWalkThrough(files: File[]): Promise<string> {
-  const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
   const fileSummary = files.map(f => `File: ${f.filename}\nDiff: ${f.diff}`).join('\n\n');
 
   const prompt = `
@@ -199,7 +199,7 @@ export async function generateWalkThrough(files: File[]): Promise<string> {
   `;
 
   const { object } = await generateObject({
-    model: google(env.AI_MODEL),
+    model: model,
     schema: walkThroughSchema,
     prompt: prompt,
   });
@@ -208,7 +208,6 @@ export async function generateWalkThrough(files: File[]): Promise<string> {
 }
 
 export async function performCodeReview(files: File[]): Promise<ReviewComment[]> {
-  const google = createGoogleGenerativeAI({ apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY });
   const prompt = `
     You are an expert code reviewer. Your task is to analyze code changes and provide feedback as a single JSON array.
 
@@ -272,7 +271,7 @@ export async function performCodeReview(files: File[]): Promise<ReviewComment[]>
   console.log("=== PROMPT END ===");
 
   const { object } = await generateObject({
-    model: google(env.AI_MODEL),
+    model: model,
     schema: z.array(reviewCommentSchema),
     prompt: prompt,
   });

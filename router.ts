@@ -1,10 +1,22 @@
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import { observable } from "@trpc/server/observable";
-import * as diff from 'diff';
+import * as diff from "diff";
 import { EventEmitter } from "events";
-import { performCodeReview, generateReviewSummary, generateReviewTitle, generatePrObjective, generateWalkThrough } from './services/ai';
-import { serverEvent, reviewStatus, ServerEvent, ReviewComment, AdditionalDetailsPayload } from './types';
+import {
+  performCodeReview,
+  generateReviewSummary,
+  generateReviewTitle,
+  generatePrObjective,
+  generateWalkThrough,
+} from "./services/ai";
+import {
+  serverEvent,
+  reviewStatus,
+  ServerEvent,
+  ReviewComment,
+  AdditionalDetailsPayload,
+} from "./types";
 
 // 1. Zod Schemas: Define the shape of our data
 const fileSchema = z.object({
@@ -78,9 +90,12 @@ const vsCodeRouter = t.router({
         const onReviewEvent = (data: ReviewEvent) => {
           if (data.clientId === input.clientId) {
             console.log(
-              `📡 Sending event to client ${data.clientId}: ${data.type}`,
+              `📡 Sending event to client ${data.clientId}: ${data.type}`
             );
-            console.log(`📡 Event payload:`, JSON.stringify(data.payload, null, 2));
+            console.log(
+              `📡 Event payload:`,
+              JSON.stringify(data.payload, null, 2)
+            );
             console.log(`📡 Full event:`, JSON.stringify(data, null, 2));
             emit.next(data);
           }
@@ -112,30 +127,26 @@ const vsCodeRouter = t.router({
       }
 
       // Immediately send an in_progress update
-      const stateUpdatePayload = { status: reviewStatus.IN_PROGRESS };
-      console.log("📤 Sending STATE_UPDATE:", JSON.stringify(stateUpdatePayload, null, 2));
       eventEmitter.emit("reviewEvent", {
         type: serverEvent.STATE_UPDATE,
-        payload: stateUpdatePayload,
+        payload: { status: reviewStatus.IN_PROGRESS },
         reviewId,
         clientId,
       });
 
       // Notify client that file analysis is starting
-      const analyzingPayload = { reviewStatus: 'analyzing_files' };
-      console.log("📤 Sending REVIEW_STATUS (analyzing):", JSON.stringify(analyzingPayload, null, 2));
       eventEmitter.emit("reviewEvent", {
         type: serverEvent.REVIEW_STATUS,
-        payload: analyzingPayload,
+        payload: { reviewStatus: "summarizing" },
         reviewId,
         clientId,
       });
 
       try {
         // Thinking update: Generating title
-        eventEmitter.emit('reviewEvent', {
+        eventEmitter.emit("reviewEvent", {
           type: serverEvent.THINKING_UPDATE,
-          payload: { message: 'Generating a title for your review...' },
+          payload: { message: "Generating a title for your review..." },
           reviewId,
           clientId,
         });
@@ -143,21 +154,21 @@ const vsCodeRouter = t.router({
         // Generate and send the title first
         try {
           const title = await generateReviewTitle(reviewFiles);
-          eventEmitter.emit('reviewEvent', {
+          eventEmitter.emit("reviewEvent", {
             type: serverEvent.PR_TITLE,
             payload: title,
             reviewId,
             clientId,
           });
         } catch (titleError) {
-          console.error('Error generating review title:', titleError);
+          console.error("Error generating review title:", titleError);
           // Don't fail the review if title generation fails
         }
 
         // Thinking update: Generating PR Objective
-        eventEmitter.emit('reviewEvent', {
+        eventEmitter.emit("reviewEvent", {
           type: serverEvent.THINKING_UPDATE,
-          payload: { message: 'Formulating the objective...' },
+          payload: { message: "Formulating the objective..." },
           reviewId,
           clientId,
         });
@@ -165,20 +176,20 @@ const vsCodeRouter = t.router({
         // Generate and send the PR Objective
         try {
           const objective = await generatePrObjective(reviewFiles);
-          eventEmitter.emit('reviewEvent', {
+          eventEmitter.emit("reviewEvent", {
             type: serverEvent.PR_OBJECTIVE,
             payload: objective,
             reviewId,
             clientId,
           });
         } catch (objectiveError) {
-          console.error('Error generating PR objective:', objectiveError);
+          console.error("Error generating PR objective:", objectiveError);
         }
 
         // Thinking update: Generating Walkthrough
-        eventEmitter.emit('reviewEvent', {
+        eventEmitter.emit("reviewEvent", {
           type: serverEvent.THINKING_UPDATE,
-          payload: { message: 'Preparing a walkthrough...' },
+          payload: { message: "Preparing a walkthrough..." },
           reviewId,
           clientId,
         });
@@ -186,69 +197,65 @@ const vsCodeRouter = t.router({
         // Generate and send the Walkthrough
         try {
           const walkThrough = await generateWalkThrough(reviewFiles);
-          eventEmitter.emit('reviewEvent', {
+          eventEmitter.emit("reviewEvent", {
             type: serverEvent.WALK_THROUGH,
             payload: walkThrough,
             reviewId,
             clientId,
           });
         } catch (walkThroughError) {
-          console.error('Error generating walkthrough:', walkThroughError);
+          console.error("Error generating walkthrough:", walkThroughError);
         }
 
-        // Thinking update: Performing review
-        eventEmitter.emit('reviewEvent', {
-          type: serverEvent.THINKING_UPDATE,
-          payload: { message: 'Analyzing your code with AI...' },
+        // Notify client that file review is starting
+        eventEmitter.emit("reviewEvent", {
+          type: serverEvent.REVIEW_STATUS,
+          payload: { reviewStatus: "reviewing" },
           reviewId,
           clientId,
         });
 
         // Start the AI review process (this is now blocking until the AI responds)
         const comments = await performCodeReview(reviewFiles);
-        
+
         // Sort comments by line number (highest first) to prevent line number conflicts
         // when multiple suggestions are applied sequentially
         comments.sort((a, b) => b.startLine - a.startLine);
-        console.log(`📋 Sorted ${comments.length} comments by line number (highest first):`);
-        comments.forEach((comment, index) => {
-          console.log(`  ${index + 1}. Lines ${comment.startLine}-${comment.endLine}: ${comment.type}`);
-        });
-
-        // Notify client that file review is starting
-        const reviewingPayload = { reviewStatus: 'reviewing_files' };
-        console.log("📤 Sending REVIEW_STATUS (reviewing):", JSON.stringify(reviewingPayload, null, 2));
-        eventEmitter.emit("reviewEvent", {
-          type: serverEvent.REVIEW_STATUS,
-          payload: reviewingPayload,
-          reviewId,
-          clientId,
-        });
 
         // First, process and send each comment individually for the main list UI
         for (const comment of comments) {
           let suggestionDiff: string | undefined = undefined;
 
           if (comment.suggestions && comment.suggestions.length > 0) {
-            const file = reviewFiles.find((f) => f.filename === comment.filename);
+            const file = reviewFiles.find(
+              (f) => f.filename === comment.filename
+            );
             if (file) {
-              const fileLines = file.fileContent.split('\n');
-              const originalCodeBlock = fileLines.slice(comment.startLine - 1, comment.endLine).join('\n');
+              const fileLines = file.fileContent.split("\n");
+              const originalCodeBlock = fileLines
+                .slice(comment.startLine - 1, comment.endLine)
+                .join("\n");
               const suggestedCode = comment.suggestions[0];
-              const patch = diff.createPatch(comment.filename, originalCodeBlock, suggestedCode, 'Original', 'Suggested');
-              const patchLines = patch.split('\n');
-              const diffStartIndex = patchLines.findIndex(line => line.startsWith('@@'));
-              const diffLines = diffStartIndex !== -1 ? patchLines.slice(diffStartIndex) : [];
-              suggestionDiff = '```diff\n' + diffLines.join('\n') + '\n```';
+              const patch = diff.createPatch(
+                comment.filename,
+                originalCodeBlock,
+                suggestedCode,
+                "Original",
+                "Suggested"
+              );
+              const patchLines = patch.split("\n");
+              const diffStartIndex = patchLines.findIndex((line) =>
+                line.startsWith("@@")
+              );
+              const diffLines =
+                diffStartIndex !== -1 ? patchLines.slice(diffStartIndex) : [];
+              suggestionDiff = "```diff\n" + diffLines.join("\n") + "\n```";
             }
           }
 
           let commentWithDiff = comment.comment;
           if (suggestionDiff) {
-            commentWithDiff += '\n\n' + suggestionDiff;
-            if (comments.length > 1) {
-              commentWithDiff += '\n\n*💡 Tip: Apply suggestions from bottom to top of the file to avoid line number conflicts.*';
-            }
+            commentWithDiff += "\n\n" + suggestionDiff;
           }
 
           const payload = {
@@ -273,22 +280,22 @@ const vsCodeRouter = t.router({
           const changedLinesMap = new Map<string, Set<number>>();
           for (const file of reviewFiles) {
             const changedLines = new Set<number>();
-            const diffLines = file.diff.split('\n');
+            const diffLines = file.diff.split("\n");
             let currentNewLine = 0;
             for (const line of diffLines) {
-              if (line.startsWith('@@')) {
+              if (line.startsWith("@@")) {
                 const match = /^@@ -\d+(,\d+)? \+(\d+)(,\d+)? @@/.exec(line);
                 if (match && match[2]) {
                   currentNewLine = parseInt(match[2], 10);
                 } else {
                   currentNewLine = 0; // Reset if hunk header is weird
                 }
-              } else if (line.startsWith('+')) {
+              } else if (line.startsWith("+")) {
                 changedLines.add(currentNewLine);
                 currentNewLine++;
-              } else if (line.startsWith(' ')) {
+              } else if (line.startsWith(" ")) {
                 currentNewLine++;
-              } else if (line.startsWith('-')) {
+              } else if (line.startsWith("-")) {
                 // This line does not exist in the new file, so the line counter does not advance
               }
             }
@@ -314,7 +321,10 @@ const vsCodeRouter = t.router({
 
             if (!inDiff) {
               outsideDiffRangeComments.push(comment);
-            } else if (comment.type === 'potential_issue' || comment.type === 'refactor_suggestion') {
+            } else if (
+              comment.type === "potential_issue" ||
+              comment.type === "refactor_suggestion"
+            ) {
               assertiveComments.push(comment);
             } else {
               additionalComments.push(comment);
@@ -336,23 +346,25 @@ const vsCodeRouter = t.router({
           console.log(`📤 Sending ADDITIONAL_DETAILS:`);
           console.log(JSON.stringify(payload, null, 2));
 
-          eventEmitter.emit('reviewEvent', {
+          eventEmitter.emit("reviewEvent", {
             type: serverEvent.ADDITIONAL_DETAILS,
             payload,
             reviewId,
             clientId,
           });
-
         } catch (categorizationError) {
-          console.error('Error during comment categorization:', categorizationError);
+          console.error(
+            "Error during comment categorization:",
+            categorizationError
+          );
           // If categorization fails, we can fall back to sending individual comments (or just log the error)
           // For now, we'll just log it and the review will continue to the summary step.
         }
 
-                // Thinking update: Generating summary
-        eventEmitter.emit('reviewEvent', {
+        // Thinking update: Generating summary
+        eventEmitter.emit("reviewEvent", {
           type: serverEvent.THINKING_UPDATE,
-          payload: { message: 'Generating a summary of the review...' },
+          payload: { message: "Generating a summary of the review..." },
           reviewId,
           clientId,
         });
@@ -362,7 +374,7 @@ const vsCodeRouter = t.router({
           const summary = await generateReviewSummary(comments);
 
           // Send the short summary
-          eventEmitter.emit('reviewEvent', {
+          eventEmitter.emit("reviewEvent", {
             type: serverEvent.SHORT_SUMMARY,
             payload: { summary: summary.shortSummary },
             reviewId,
@@ -370,23 +382,24 @@ const vsCodeRouter = t.router({
           });
 
           // Send the full summary comment
-          eventEmitter.emit('reviewEvent', {
+          eventEmitter.emit("reviewEvent", {
             type: serverEvent.SUMMARY_COMMENT,
             payload: { summary: summary.summary },
             reviewId,
             clientId,
           });
         } catch (summaryError) {
-          console.error('Error generating review summary:', summaryError);
+          console.error("Error generating review summary:", summaryError);
           // Don't fail the whole review if summary generation fails
         }
 
         // Signal that the review is complete
-        const completedPayload = { status: reviewStatus.COMPLETED };
-        console.log("📤 Sending REVIEW_COMPLETED:", JSON.stringify(completedPayload, null, 2));
+        console.log("📤 Sending REVIEW_COMPLETED:", {
+          status: reviewStatus.COMPLETED,
+        });
         eventEmitter.emit("reviewEvent", {
           type: serverEvent.REVIEW_COMPLETED,
-          payload: completedPayload,
+          payload: { status: reviewStatus.COMPLETED },
           reviewId,
           clientId,
           endedAt: new Date().toISOString(),
@@ -399,10 +412,13 @@ const vsCodeRouter = t.router({
         let eventType: ServerEvent = serverEvent.ERROR;
 
         // Check for specific Vercel AI SDK errors
-        if (error instanceof Error && 'cause' in error) {
+        if (error instanceof Error && "cause" in error) {
           const cause = error.cause as any;
-          if (cause?.isRetryable === true && cause?.responseBody?.includes('overloaded')) {
-            errorMessage = 'The model is overloaded. Please try again later.';
+          if (
+            cause?.isRetryable === true &&
+            cause?.responseBody?.includes("overloaded")
+          ) {
+            errorMessage = "The model is overloaded. Please try again later.";
             eventType = serverEvent.RATE_LIMIT_EXCEEDED;
           }
         }
