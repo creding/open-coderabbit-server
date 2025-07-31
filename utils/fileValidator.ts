@@ -74,6 +74,7 @@ export class FileValidator {
         // Docker and containers
         '.dockerfile',
         'dockerfile',
+        'Dockerfile',
         // Configuration files (special files)
         '.gitignore',
         '.env',
@@ -210,6 +211,8 @@ export class FileValidator {
       '.editorconfig',
       '.dockerignore',
       '.htaccess',
+      'dockerfile',
+      'Dockerfile',
     ];
 
     const baseFilename = filename.split('/').pop() || filename;
