@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node server.ts",
+    "dev": "ts-node src/server.ts",
     "test": "vitest",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write ."

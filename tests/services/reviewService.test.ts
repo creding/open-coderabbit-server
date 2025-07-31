@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ReviewService } from '../../services/reviewService';
+import { ReviewService } from '../../src/services/reviewService';
 import { EventEmitter } from 'events';
-import { getAiProvider } from '../../services/ai/index';
-import { logger } from '../../utils/logger';
-import { monitor } from '../../utils/monitor';
-import { serverEvent, reviewStatus } from '../../types';
+import { getAiProvider } from '../../src/services/ai/index';
+import { logger } from '../../src/utils/logger';
+import { monitor } from '../../src/utils/monitor';
+import { serverEvent, reviewStatus } from '../../src/types';
 
 vi.mock('../../services/ai/index', () => ({
   getAiProvider: vi.fn(),
@@ -38,7 +38,9 @@ describe('ReviewService', () => {
       generatePrObjective: vi.fn().mockResolvedValue('Test Objective'),
       generateWalkThrough: vi.fn().mockResolvedValue('Test Walkthrough'),
       performCodeReview: vi.fn().mockResolvedValue([]),
-      generateReviewSummary: vi.fn().mockResolvedValue({ summary: 's', shortSummary: 'ss' }),
+      generateReviewSummary: vi
+        .fn()
+        .mockResolvedValue({ summary: 's', shortSummary: 'ss' }),
     };
     vi.mocked(getAiProvider).mockReturnValue(mockAiProvider);
     reviewService = new ReviewService(eventEmitter, 'review1', 'client1');
@@ -56,7 +58,10 @@ describe('ReviewService', () => {
 
     expect(emitSpy).toHaveBeenCalledWith(
       'reviewEvent',
-      expect.objectContaining({ type: serverEvent.REVIEW_COMPLETED, payload: { status: reviewStatus.COMPLETED } })
+      expect.objectContaining({
+        type: serverEvent.REVIEW_COMPLETED,
+        payload: { status: reviewStatus.COMPLETED },
+      })
     );
   });
 
@@ -73,7 +78,10 @@ describe('ReviewService', () => {
     );
     expect(emitSpy).toHaveBeenCalledWith(
       'reviewEvent',
-      expect.objectContaining({ type: serverEvent.REVIEW_COMPLETED, payload: { status: reviewStatus.FAILED } })
+      expect.objectContaining({
+        type: serverEvent.REVIEW_COMPLETED,
+        payload: { status: reviewStatus.FAILED },
+      })
     );
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { retryWithBackoff, RetryableError } from '../utils/retry';
+import { retryWithBackoff, RetryableError } from '../src/utils/retry';
 
 describe('retryWithBackoff', () => {
   it('should return the result of the operation if it succeeds on the first try', async () => {
@@ -21,9 +21,9 @@ describe('retryWithBackoff', () => {
 
   it('should throw an error if the operation fails on all retries', async () => {
     const operation = vi.fn().mockRejectedValue(new Error('failure'));
-    await expect(retryWithBackoff(operation, { maxRetries: 2, baseDelayMs: 1 })).rejects.toThrow(
-      'failure'
-    );
+    await expect(
+      retryWithBackoff(operation, { maxRetries: 2, baseDelayMs: 1 })
+    ).rejects.toThrow('failure');
     expect(operation).toHaveBeenCalledTimes(3);
   });
 
@@ -53,8 +53,12 @@ describe('retryWithBackoff', () => {
   });
 
   it('should respect the RetryableError', async () => {
-    const operation = vi.fn().mockRejectedValue(new RetryableError('failure', false));
-    await expect(retryWithBackoff(operation, { baseDelayMs: 1 })).rejects.toThrow('failure');
+    const operation = vi
+      .fn()
+      .mockRejectedValue(new RetryableError('failure', false));
+    await expect(
+      retryWithBackoff(operation, { baseDelayMs: 1 })
+    ).rejects.toThrow('failure');
     expect(operation).toHaveBeenCalledTimes(1);
   });
 });

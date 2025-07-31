@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ConfigManager } from '../utils/config';
-import { env } from '../constants';
+import { ConfigManager } from '../src/utils/config';
+import { env } from '../src/constants';
 
 vi.mock('../constants', () => ({
   env: {

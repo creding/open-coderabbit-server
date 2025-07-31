@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { Logger, LogLevel } from '../utils/logger';
-import { env } from '../constants';
+import { Logger, LogLevel } from '../src/utils/logger';
+import { env } from '../src/constants';
 
 vi.mock('../constants', () => ({
   env: {
@@ -53,6 +53,8 @@ describe('Logger', () => {
 
   it('should log structured data', () => {
     logger.info('test info', { key: 'value' });
-    expect(console.info).toHaveBeenCalledWith(expect.stringContaining('{"key":"value"}'));
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('{"key":"value"}')
+    );
   });
 });

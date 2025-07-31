@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { LRUCache, ReviewCache } from '../utils/cache';
-import { File, ReviewComment } from '../types';
+import { LRUCache, ReviewCache } from '../src/utils/cache';
+import { File, ReviewComment } from '../src/types';
 
 describe('LRUCache', () => {
   let cache: LRUCache<string>;
@@ -75,12 +75,38 @@ describe('LRUCache', () => {
 describe('ReviewCache', () => {
   let reviewCache: ReviewCache;
   const mockFiles: File[] = [
-    { filename: 'file1.ts', fileContent: 'content1', diff: 'diff1', newFile: false, deletedFile: false, renamedFile: false },
-    { filename: 'file2.ts', fileContent: 'content2', diff: 'diff2', newFile: false, deletedFile: false, renamedFile: false },
+    {
+      filename: 'file1.ts',
+      fileContent: 'content1',
+      diff: 'diff1',
+      newFile: false,
+      deletedFile: false,
+      renamedFile: false,
+    },
+    {
+      filename: 'file2.ts',
+      fileContent: 'content2',
+      diff: 'diff2',
+      newFile: false,
+      deletedFile: false,
+      renamedFile: false,
+    },
   ];
   const mockComments: ReviewComment[] = [
-    { filename: 'file1.ts', startLine: 1, endLine: 2, comment: 'comment1', type: 'issue' },
-    { filename: 'file2.ts', startLine: 3, endLine: 4, comment: 'comment2', type: 'suggestion' },
+    {
+      filename: 'file1.ts',
+      startLine: 1,
+      endLine: 2,
+      comment: 'comment1',
+      type: 'issue',
+    },
+    {
+      filename: 'file2.ts',
+      startLine: 3,
+      endLine: 4,
+      comment: 'comment2',
+      type: 'suggestion',
+    },
   ];
 
   beforeEach(() => {
@@ -126,19 +152,49 @@ describe('ReviewCache', () => {
   });
 
   it('should return false for shouldCache with too few files', () => {
-    const files: File[] = [{ filename: 'file1.ts', fileContent: 'c', diff: 'd', newFile: false, deletedFile: false, renamedFile: false }];
+    const files: File[] = [
+      {
+        filename: 'file1.ts',
+        fileContent: 'c',
+        diff: 'd',
+        newFile: false,
+        deletedFile: false,
+        renamedFile: false,
+      },
+    ];
     expect(reviewCache.shouldCache(files)).toBe(false);
   });
 
   it('should return false for shouldCache with too many files', () => {
-    const files: File[] = Array(21).fill({ filename: 'f.ts', fileContent: 'c', diff: 'd', newFile: false, deletedFile: false, renamedFile: false });
+    const files: File[] = Array(21).fill({
+      filename: 'f.ts',
+      fileContent: 'c',
+      diff: 'd',
+      newFile: false,
+      deletedFile: false,
+      renamedFile: false,
+    });
     expect(reviewCache.shouldCache(files)).toBe(false);
   });
 
   it('should return false for shouldCache with oversized files', () => {
     const files: File[] = [
-        { filename: 'f1.ts', fileContent: 'c'.repeat(300000), diff: 'd', newFile: false, deletedFile: false, renamedFile: false },
-        { filename: 'f2.ts', fileContent: 'c'.repeat(300000), diff: 'd', newFile: false, deletedFile: false, renamedFile: false },
+      {
+        filename: 'f1.ts',
+        fileContent: 'c'.repeat(300000),
+        diff: 'd',
+        newFile: false,
+        deletedFile: false,
+        renamedFile: false,
+      },
+      {
+        filename: 'f2.ts',
+        fileContent: 'c'.repeat(300000),
+        diff: 'd',
+        newFile: false,
+        deletedFile: false,
+        renamedFile: false,
+      },
     ];
     expect(reviewCache.shouldCache(files)).toBe(false);
   });

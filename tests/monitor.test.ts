@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { Monitor } from '../utils/monitor';
-import { logger } from '../utils/logger';
+import { Monitor } from '../src/utils/monitor';
+import { logger } from '../src/utils/logger';
 
 vi.mock('../utils/logger', () => ({
   logger: {
