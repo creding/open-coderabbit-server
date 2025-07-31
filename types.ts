@@ -48,6 +48,7 @@ export const reviewCommentSchema = z.object({
   type: z.nativeEnum(issueType),
   suggestions: z.array(z.string()).optional(),
   codegenInstructions: z.string().optional(),
+  isNitpick: z.boolean().optional(),
 });
 
 export type ReviewComment = z.infer<typeof reviewCommentSchema>;
@@ -107,12 +108,17 @@ export const reviewStatus = {
 
 export type ReviewStatus = (typeof reviewStatus)[keyof typeof reviewStatus];
 
-export interface AdditionalDetailsPayload {
-  counts: Record<string, number>;
-  assertiveComments: ReviewComment[];
-  additionalComments: ReviewComment[];
-  outsideDiffRangeComments: ReviewComment[];
-}
+export const additionalDetailsPayloadSchema = z.object({
+  counts: z.record(z.string(), z.number()),
+  assertiveComments: z.record(z.string(), z.array(reviewCommentSchema)),
+  additionalComments: z.record(z.string(), z.array(reviewCommentSchema)),
+  outsideDiffRangeComments: z.array(reviewCommentSchema),
+  duplicateComments: z.record(z.string(), z.array(reviewCommentSchema)).optional(),
+});
+
+export type AdditionalDetailsPayload = z.infer<
+  typeof additionalDetailsPayloadSchema
+>;
 
 export type ReviewEvent = {
   type: ServerEvent;

@@ -25,7 +25,11 @@ export class ReviewService {
     private clientId: string
   ) {}
 
-  private emitEvent(type: ServerEvent, payload: EventPayload, endedAt?: string) {
+  private emitEvent(
+    type: ServerEvent,
+    payload: EventPayload,
+    endedAt?: string
+  ) {
     console.log(`📡 Emitting ${type} for review ${this.reviewId}`);
     this.eventEmitter.emit("reviewEvent", {
       type,
@@ -36,12 +40,14 @@ export class ReviewService {
     });
   }
 
-  private sendStatusUpdate(status: 'summarizing' | 'reviewing') {
+  private sendStatusUpdate(status: "summarizing" | "reviewing") {
     this.emitEvent(serverEvent.REVIEW_STATUS, { reviewStatus: status });
   }
 
   private async generatePrDetails(files: File[]) {
-    this.emitEvent(serverEvent.THINKING_UPDATE, { message: "Generating a title for your review..." });
+    this.emitEvent(serverEvent.THINKING_UPDATE, {
+      message: "Generating a title for your review...",
+    });
     try {
       const title = await generateReviewTitle(files);
       this.emitEvent(serverEvent.PR_TITLE, title);
@@ -49,7 +55,9 @@ export class ReviewService {
       console.error("Error generating review title:", error);
     }
 
-    this.emitEvent(serverEvent.THINKING_UPDATE, { message: "Formulating the objective..." });
+    this.emitEvent(serverEvent.THINKING_UPDATE, {
+      message: "Formulating the objective...",
+    });
     try {
       const objective = await generatePrObjective(files);
       this.emitEvent(serverEvent.PR_OBJECTIVE, objective);
@@ -57,7 +65,9 @@ export class ReviewService {
       console.error("Error generating PR objective:", error);
     }
 
-    this.emitEvent(serverEvent.THINKING_UPDATE, { message: "Preparing a walkthrough..." });
+    this.emitEvent(serverEvent.THINKING_UPDATE, {
+      message: "Preparing a walkthrough...",
+    });
     try {
       const walkThrough = await generateWalkThrough(files);
       this.emitEvent(serverEvent.WALK_THROUGH, walkThrough);
@@ -66,19 +76,33 @@ export class ReviewService {
     }
   }
 
-  private async processAndSendComments(comments: ReviewComment[], files: File[]) {
+  private async processAndSendComments(
+    comments: ReviewComment[],
+    files: File[]
+  ) {
     for (const comment of comments) {
       let suggestionDiff: string | undefined = undefined;
       if (comment.suggestions && comment.suggestions.length > 0) {
         const file = files.find((f) => f.filename === comment.filename);
         if (file) {
           const fileLines = file.fileContent.split("\n");
-          const originalCodeBlock = fileLines.slice(comment.startLine - 1, comment.endLine).join("\n");
+          const originalCodeBlock = fileLines
+            .slice(comment.startLine - 1, comment.endLine)
+            .join("\n");
           const suggestedCode = comment.suggestions[0];
-          const patch = diff.createPatch(comment.filename, originalCodeBlock, suggestedCode, "Original", "Suggested");
+          const patch = diff.createPatch(
+            comment.filename,
+            originalCodeBlock,
+            suggestedCode,
+            "Original",
+            "Suggested"
+          );
           const patchLines = patch.split("\n");
-          const diffStartIndex = patchLines.findIndex((line) => line.startsWith("@@"));
-          const diffLines = diffStartIndex !== -1 ? patchLines.slice(diffStartIndex) : [];
+          const diffStartIndex = patchLines.findIndex((line) =>
+            line.startsWith("@@")
+          );
+          const diffLines =
+            diffStartIndex !== -1 ? patchLines.slice(diffStartIndex) : [];
           suggestionDiff = "```diff\n" + diffLines.join("\n") + "\n```";
         }
       }
@@ -96,82 +120,106 @@ export class ReviewService {
         codegenInstructions: comment.codegenInstructions,
       };
 
-      this.emitEvent(serverEvent.REVIEW_COMMENT, payload);
+      if (!comment.isNitpick) {
+        this.emitEvent(serverEvent.REVIEW_COMMENT, payload);
+      }
     }
   }
 
-  private async categorizeAndSendDetails(comments: ReviewComment[], files: File[]) {
-     try {
-          const changedLinesMap = new Map<string, Set<number>>();
-          for (const file of files) {
-            const changedLines = new Set<number>();
-            const diffLines = file.diff.split("\n");
-            let currentNewLine = 0;
-            for (const line of diffLines) {
-              if (line.startsWith("@@")) {
-                const match = /^@@ -\d+(,\d+)? \+(\d+)(,\d+)? @@/.exec(line);
-                if (match && match[2]) {
-                  currentNewLine = parseInt(match[2], 10);
-                } else {
-                  currentNewLine = 0;
-                }
-              } else if (line.startsWith("+")) {
-                changedLines.add(currentNewLine);
-                currentNewLine++;
-              } else if (line.startsWith(" ")) {
-                currentNewLine++;
-              }
-            }
-            changedLinesMap.set(file.filename, changedLines);
-          }
-
-          const assertiveComments: ReviewComment[] = [];
-          const additionalComments: ReviewComment[] = [];
-          const outsideDiffRangeComments: ReviewComment[] = [];
-
-          for (const comment of comments) {
-            const changedLines = changedLinesMap.get(comment.filename);
-            let inDiff = false;
-            if (changedLines) {
-              for (let i = comment.startLine; i <= comment.endLine; i++) {
-                if (changedLines.has(i)) {
-                  inDiff = true;
-                  break;
-                }
-              }
-            }
-
-            if (!inDiff) {
-              outsideDiffRangeComments.push(comment);
-            } else if (comment.type === "potential_issue" || comment.type === "refactor_suggestion") {
-              assertiveComments.push(comment);
+  private async categorizeAndSendDetails(
+    comments: ReviewComment[],
+    files: File[]
+  ) {
+    try {
+      const changedLinesMap = new Map<string, Set<number>>();
+      for (const file of files) {
+        const changedLines = new Set<number>();
+        const diffLines = file.diff.split("\n");
+        let currentNewLine = 0;
+        for (const line of diffLines) {
+          if (line.startsWith("@@")) {
+            const match = /^@@ -\d+(,\d+)? \+(\d+)(,\d+)? @@/.exec(line);
+            if (match && match[2]) {
+              currentNewLine = parseInt(match[2], 10);
             } else {
-              additionalComments.push(comment);
+              currentNewLine = 0;
+            }
+          } else if (line.startsWith("+")) {
+            changedLines.add(currentNewLine);
+            currentNewLine++;
+          } else if (line.startsWith(" ")) {
+            currentNewLine++;
+          }
+        }
+        changedLinesMap.set(file.filename, changedLines);
+      }
+
+      const assertiveFileReviewMap: Record<string, ReviewComment[]> = {};
+      const fileReviewMap: Record<string, ReviewComment[]> = {};
+      const outsideDiffRangeComments: ReviewComment[] = [];
+
+      for (const comment of comments) {
+        const changedLines = changedLinesMap.get(comment.filename);
+        let inDiff = false;
+        if (changedLines) {
+          for (let i = comment.startLine; i <= comment.endLine; i++) {
+            if (changedLines.has(i)) {
+              inDiff = true;
+              break;
             }
           }
-
-          const payload: AdditionalDetailsPayload = {
-            counts: {
-              assertive: assertiveComments.length,
-              additional: additionalComments.length,
-              outside_diff: outsideDiffRangeComments.length,
-            },
-            assertiveComments,
-            additionalComments,
-            outsideDiffRangeComments,
-          };
-
-          this.emitEvent(serverEvent.ADDITIONAL_DETAILS, payload);
-        } catch (error) {
-          console.error("Error during comment categorization:", error);
         }
+
+        if (comment.isNitpick) {
+          if (!assertiveFileReviewMap[comment.filename]) {
+            assertiveFileReviewMap[comment.filename] = [];
+          }
+          assertiveFileReviewMap[comment.filename].push(comment);
+        } else if (!inDiff) {
+          outsideDiffRangeComments.push(comment);
+        } else {
+          if (!fileReviewMap[comment.filename]) {
+            fileReviewMap[comment.filename] = [];
+          }
+          fileReviewMap[comment.filename].push(comment);
+        }
+      }
+
+      const assertiveCommentsCount = Object.values(
+        assertiveFileReviewMap
+      ).reduce((acc, val) => acc + val.length, 0);
+      const additionalCommentsCount = Object.values(fileReviewMap).reduce(
+        (acc, val) => acc + val.length,
+        0
+      );
+
+      const payload: AdditionalDetailsPayload = {
+        counts: {
+          assertive: assertiveCommentsCount,
+          additional: additionalCommentsCount,
+          outside_diff: outsideDiffRangeComments.length,
+        },
+        assertiveComments: assertiveFileReviewMap,
+        additionalComments: fileReviewMap,
+        outsideDiffRangeComments,
+        duplicateComments: {},
+      };
+
+      this.emitEvent(serverEvent.ADDITIONAL_DETAILS, payload);
+    } catch (error) {
+      console.error("Error during comment categorization:", error);
+    }
   }
 
   private async generateAndSendSummary(comments: ReviewComment[]) {
-    this.emitEvent(serverEvent.THINKING_UPDATE, { message: "Generating a summary of the review..." });
+    this.emitEvent(serverEvent.THINKING_UPDATE, {
+      message: "Generating a summary of the review...",
+    });
     try {
       const summary = await generateReviewSummary(comments);
-      this.emitEvent(serverEvent.SHORT_SUMMARY, { summary: summary.shortSummary });
+      this.emitEvent(serverEvent.SHORT_SUMMARY, {
+        summary: summary.shortSummary,
+      });
       this.emitEvent(serverEvent.SUMMARY_COMMENT, { summary: summary.summary });
     } catch (error) {
       console.error("Error generating review summary:", error);
@@ -192,7 +240,10 @@ export class ReviewService {
 
     if (error instanceof Error && "cause" in error) {
       const cause = error.cause as any;
-      if (cause?.isRetryable === true && cause?.responseBody?.includes("overloaded")) {
+      if (
+        cause?.isRetryable === true &&
+        cause?.responseBody?.includes("overloaded")
+      ) {
         errorMessage = "The model is overloaded. Please try again later.";
         eventType = serverEvent.RATE_LIMIT_EXCEEDED;
       }
@@ -210,15 +261,19 @@ export class ReviewService {
 
   public async run(files: File[]) {
     try {
-      this.emitEvent(serverEvent.STATE_UPDATE, { status: reviewStatus.IN_PROGRESS });
+      this.emitEvent(serverEvent.STATE_UPDATE, {
+        status: reviewStatus.IN_PROGRESS,
+      });
       this.sendStatusUpdate("summarizing");
       await this.generatePrDetails(files);
       this.sendStatusUpdate("reviewing");
-      const comments = await performCodeReview(files);
-      comments.sort((a, b) => b.startLine - a.startLine);
-      await this.processAndSendComments(comments, files);
-      await this.categorizeAndSendDetails(comments, files);
-      await this.generateAndSendSummary(comments);
+
+      const allComments = await performCodeReview(files);
+
+      allComments.sort((a: ReviewComment, b: ReviewComment) => b.startLine - a.startLine);
+      await this.processAndSendComments(allComments, files);
+      await this.categorizeAndSendDetails(allComments, files);
+      await this.generateAndSendSummary(allComments);
       this.sendCompletionEvent(reviewStatus.COMPLETED);
     } catch (error) {
       console.error("Error during AI code review:", error);
