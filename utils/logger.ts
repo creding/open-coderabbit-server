@@ -27,11 +27,16 @@ export class Logger {
 
   private parseLogLevel(level: string): LogLevel {
     switch (level.toLowerCase()) {
-      case 'error': return LogLevel.ERROR;
-      case 'warn': return LogLevel.WARN;
-      case 'info': return LogLevel.INFO;
-      case 'debug': return LogLevel.DEBUG;
-      default: return LogLevel.INFO;
+      case 'error':
+        return LogLevel.ERROR;
+      case 'warn':
+        return LogLevel.WARN;
+      case 'info':
+        return LogLevel.INFO;
+      case 'debug':
+        return LogLevel.DEBUG;
+      default:
+        return LogLevel.INFO;
     }
   }
 
@@ -42,31 +47,41 @@ export class Logger {
   private formatMessage(level: string, message: string, meta?: any): string {
     const timestamp = new Date().toISOString();
     const emoji = this.getLogEmoji(level);
-    
+
     let formatted = `${timestamp} ${emoji} [${level.toUpperCase()}] ${message}`;
-    
+
     if (meta) {
       formatted += ` ${JSON.stringify(meta)}`;
     }
-    
+
     return formatted;
   }
 
   private getLogEmoji(level: string): string {
     switch (level.toLowerCase()) {
-      case 'error': return '❌';
-      case 'warn': return '⚠️';
-      case 'info': return 'ℹ️';
-      case 'debug': return '🔍';
-      default: return '📝';
+      case 'error':
+        return '❌';
+      case 'warn':
+        return '⚠️';
+      case 'info':
+        return 'ℹ️';
+      case 'debug':
+        return '🔍';
+      default:
+        return '📝';
     }
   }
 
-  private log(level: LogLevel, levelName: string, message: string, meta?: any): void {
+  private log(
+    level: LogLevel,
+    levelName: string,
+    message: string,
+    meta?: any
+  ): void {
     if (!this.shouldLog(level)) return;
 
     const formatted = this.formatMessage(levelName, message, meta);
-    
+
     // Always log to console
     switch (level) {
       case LogLevel.ERROR:
@@ -111,27 +126,37 @@ export class Logger {
       reviewId,
       clientId,
       fileCount,
-      event: 'review_started'
+      event: 'review_started',
     });
   }
 
-  reviewCompleted(reviewId: string, clientId: string, duration: number, commentCount: number): void {
+  reviewCompleted(
+    reviewId: string,
+    clientId: string,
+    duration: number,
+    commentCount: number
+  ): void {
     this.info('Review completed', {
       reviewId,
       clientId,
       duration,
       commentCount,
-      event: 'review_completed'
+      event: 'review_completed',
     });
   }
 
-  reviewFailed(reviewId: string, clientId: string, error: string, duration?: number): void {
+  reviewFailed(
+    reviewId: string,
+    clientId: string,
+    error: string,
+    duration?: number
+  ): void {
     this.error('Review failed', {
       reviewId,
       clientId,
       error,
       duration,
-      event: 'review_failed'
+      event: 'review_failed',
     });
   }
 
@@ -139,27 +164,36 @@ export class Logger {
     this.warn('Rate limit exceeded', {
       clientId,
       endpoint,
-      event: 'rate_limit_exceeded'
+      event: 'rate_limit_exceeded',
     });
   }
 
-  aiRequest(operation: string, duration: number, success: boolean, error?: string): void {
+  aiRequest(
+    operation: string,
+    duration: number,
+    success: boolean,
+    error?: string
+  ): void {
     const level = success ? 'info' : 'error';
     this[level](`AI ${operation} ${success ? 'completed' : 'failed'}`, {
       operation,
       duration,
       success,
       error,
-      event: 'ai_request'
+      event: 'ai_request',
     });
   }
 
-  fileValidationFailed(clientId: string, error: string, fileCount: number): void {
+  fileValidationFailed(
+    clientId: string,
+    error: string,
+    fileCount: number
+  ): void {
     this.warn('File validation failed', {
       clientId,
       error,
       fileCount,
-      event: 'file_validation_failed'
+      event: 'file_validation_failed',
     });
   }
 
@@ -168,21 +202,21 @@ export class Logger {
       port,
       host,
       ssl,
-      event: 'server_started'
+      event: 'server_started',
     });
   }
 
   connectionEstablished(clientId: string): void {
     this.debug('WebSocket connection established', {
       clientId,
-      event: 'connection_established'
+      event: 'connection_established',
     });
   }
 
   connectionClosed(clientId: string): void {
     this.debug('WebSocket connection closed', {
       clientId,
-      event: 'connection_closed'
+      event: 'connection_closed',
     });
   }
 }

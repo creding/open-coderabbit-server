@@ -1,7 +1,9 @@
-import { File, ReviewComment } from "../../types";
+import { File, ReviewComment } from '../../types';
 
 export const generateReviewTitlePrompt = (files: File[]): string => {
-  const fileSummary = files.map(f => `File: ${f.filename}\nDiff: ${f.diff}`).join('\n\n');
+  const fileSummary = files
+    .map((f) => `File: ${f.filename}\nDiff: ${f.diff}`)
+    .join('\n\n');
   return `
       You are an expert software engineer. Based on the following file diffs, please generate a concise and descriptive title for the code changes, as if it were a pull request title.
 
@@ -12,11 +14,13 @@ export const generateReviewTitlePrompt = (files: File[]): string => {
     `;
 };
 
-export const generateReviewSummaryPrompt = (comments: ReviewComment[]): string => {
-    if (comments.length === 0) {
-        return 'No issues found.';
-    }
-    return `
+export const generateReviewSummaryPrompt = (
+  comments: ReviewComment[]
+): string => {
+  if (comments.length === 0) {
+    return 'No issues found.';
+  }
+  return `
       You are an expert code reviewer. Based on the following list of review comments, please provide a high-level summary of the findings.
 
       The output MUST be a single JSON object with two fields: 'summary' (string) and 'shortSummary' (string).
@@ -30,8 +34,10 @@ export const generateReviewSummaryPrompt = (comments: ReviewComment[]): string =
 };
 
 export const generatePrObjectivePrompt = (files: File[]): string => {
-    const fileSummary = files.map(f => `File: ${f.filename}\nDiff: ${f.diff}`).join('\n\n');
-    return `
+  const fileSummary = files
+    .map((f) => `File: ${f.filename}\nDiff: ${f.diff}`)
+    .join('\n\n');
+  return `
       You are an expert software engineer. Based on the following file diffs, please generate a concise, one-sentence objective for the code changes.
 
       The output MUST be a single JSON object with one field: 'objective' (string).
@@ -42,8 +48,10 @@ export const generatePrObjectivePrompt = (files: File[]): string => {
 };
 
 export const generateWalkThroughPrompt = (files: File[]): string => {
-    const fileSummary = files.map(f => `File: ${f.filename}\nDiff: ${f.diff}`).join('\n\n');
-    return `
+  const fileSummary = files
+    .map((f) => `File: ${f.filename}\nDiff: ${f.diff}`)
+    .join('\n\n');
+  return `
       You are an expert software engineer. Based on the following file diffs, please generate a high-level, step-by-step walkthrough of the code changes.
       This should be a narrative that explains the purpose and impact of the changes. Format it as a Markdown string.
 
@@ -55,7 +63,7 @@ export const generateWalkThroughPrompt = (files: File[]): string => {
 };
 
 export const performCodeReviewPrompt = (files: File[]): string => {
-    return `
+  return `
     You are an expert code reviewer. Your task is to analyze code changes and provide feedback as a single JSON array.
 
     The output MUST be a single JSON array of review comment objects. Each object in the array must have the following fields: 'filename' (string), 'startLine' (number), 'endLine' (number), 'comment' (string), and 'type' (string).
@@ -97,14 +105,16 @@ export const performCodeReviewPrompt = (files: File[]): string => {
 
     Here are the files to review:
     ${files
-      .map(
-        (file) => {
-          const numberedContent = file.fileContent
-            .split('\n')
-            .map((line, index) => `${(index + 1).toString().padStart(3, ' ')}: ${line}`)
-            .join('\n');
-          
-          return `
+      .map((file) => {
+        const numberedContent = file.fileContent
+          .split('\n')
+          .map(
+            (line, index) =>
+              `${(index + 1).toString().padStart(3, ' ')}: ${line}`
+          )
+          .join('\n');
+
+        return `
       File: ${file.filename}
       
       Diff:
@@ -118,8 +128,7 @@ export const performCodeReviewPrompt = (files: File[]): string => {
       - When providing 'startLine' and 'endLine', you MUST use the line numbers shown in the full content above (the numbers before the colon).
       - The line numbers are 1-indexed and correspond to the actual file content.
     `;
-        }
-      )
-      .join("\n")}\n
+      })
+      .join('\n')}\n
     `;
 };

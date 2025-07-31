@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { env } from "../constants";
+import { z } from 'zod';
+import { env } from '../constants';
 
 export interface ServerConfig {
   server: {
@@ -9,7 +9,7 @@ export interface ServerConfig {
     timeout: number;
   };
   ai: {
-    provider: "google";
+    provider: 'google';
     model: string;
     apiKey: string;
     maxRetries: number;
@@ -28,7 +28,7 @@ export interface ServerConfig {
     skipFailedRequests: boolean;
   };
   logging: {
-    level: "error" | "warn" | "info" | "debug";
+    level: 'error' | 'warn' | 'info' | 'debug';
     toFile: boolean;
     structured: boolean;
   };
@@ -53,11 +53,11 @@ export class ConfigManager {
       server: {
         port: parseInt(env.PORT, 10),
         host: env.HOST,
-        ssl: env.SSL === "true",
+        ssl: env.SSL === 'true',
         timeout: parseInt(env.REVIEW_TIMEOUT_MS, 10),
       },
       ai: {
-        provider: "google",
+        provider: 'google',
         model: env.AI_MODEL,
         apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
         maxRetries: 3,
@@ -68,44 +68,44 @@ export class ConfigManager {
         maxFiles: parseInt(env.MAX_FILES_PER_REVIEW, 10),
         maxTotalSize: parseInt(env.MAX_TOTAL_SIZE, 10),
         allowedExtensions: [
-          ".ts",
-          ".tsx",
-          ".js",
-          ".jsx",
-          ".mjs",
-          ".cjs",
-          ".py",
-          ".java",
-          ".go",
-          ".rs",
-          ".cpp",
-          ".c",
-          ".h",
-          ".php",
-          ".rb",
-          ".swift",
-          ".kt",
-          ".cs",
-          ".vb",
-          ".html",
-          ".css",
-          ".scss",
-          ".sass",
-          ".less",
-          ".json",
-          ".xml",
-          ".yaml",
-          ".yml",
-          ".toml",
-          ".md",
-          ".txt",
-          ".sh",
-          ".bat",
-          ".ps1",
-          ".sql",
-          ".graphql",
-          ".proto",
-          ".dockerfile",
+          '.ts',
+          '.tsx',
+          '.js',
+          '.jsx',
+          '.mjs',
+          '.cjs',
+          '.py',
+          '.java',
+          '.go',
+          '.rs',
+          '.cpp',
+          '.c',
+          '.h',
+          '.php',
+          '.rb',
+          '.swift',
+          '.kt',
+          '.cs',
+          '.vb',
+          '.html',
+          '.css',
+          '.scss',
+          '.sass',
+          '.less',
+          '.json',
+          '.xml',
+          '.yaml',
+          '.yml',
+          '.toml',
+          '.md',
+          '.txt',
+          '.sh',
+          '.bat',
+          '.ps1',
+          '.sql',
+          '.graphql',
+          '.proto',
+          '.dockerfile',
         ],
       },
       rateLimit: {
@@ -115,8 +115,8 @@ export class ConfigManager {
         skipFailedRequests: false,
       },
       logging: {
-        level: env.LOG_LEVEL as "error" | "warn" | "info" | "debug",
-        toFile: env.LOG_TO_FILE === "true",
+        level: env.LOG_LEVEL as 'error' | 'warn' | 'info' | 'debug',
+        toFile: env.LOG_TO_FILE === 'true',
         structured: true,
       },
       features: {
@@ -137,7 +137,7 @@ export class ConfigManager {
         timeout: z.number().min(1000).max(600000), // 1s to 10min
       }),
       ai: z.object({
-        provider: z.literal("google"),
+        provider: z.literal('google'),
         model: z.string().min(1),
         apiKey: z.string().min(1),
         maxRetries: z.number().min(0).max(10),
@@ -162,7 +162,7 @@ export class ConfigManager {
         skipFailedRequests: z.boolean(),
       }),
       logging: z.object({
-        level: z.enum(["error", "warn", "info", "debug"]),
+        level: z.enum(['error', 'warn', 'info', 'debug']),
         toFile: z.boolean(),
         structured: z.boolean(),
       }),
@@ -179,8 +179,8 @@ export class ConfigManager {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const issues = error.issues
-          .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-          .join(", ");
+          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+          .join(', ');
         throw new Error(`Configuration validation failed: ${issues}`);
       }
       throw error;
@@ -215,7 +215,7 @@ export class ConfigManager {
     return this.config.features;
   }
 
-  isFeatureEnabled(feature: keyof ServerConfig["features"]): boolean {
+  isFeatureEnabled(feature: keyof ServerConfig['features']): boolean {
     return this.config.features[feature];
   }
 

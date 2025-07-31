@@ -1,6 +1,6 @@
-import { EventEmitter } from "events";
-import { getAiProvider } from "./ai/index";
-import { AiProvider } from "./ai/types";
+import { EventEmitter } from 'events';
+import { getAiProvider } from './ai/index';
+import { AiProvider } from './ai/types';
 import {
   serverEvent,
   reviewStatus,
@@ -10,10 +10,10 @@ import {
   ServerEvent,
   EventPayload,
   ReviewStatus,
-} from "../types";
-import * as diff from "diff";
-import { logger } from "../utils/logger";
-import { monitor } from "../utils/monitor";
+} from '../types';
+import * as diff from 'diff';
+import { logger } from '../utils/logger';
+import { monitor } from '../utils/monitor';
 
 export class ReviewService {
   private aiProvider: AiProvider;
@@ -35,7 +35,7 @@ export class ReviewService {
       reviewId: this.reviewId,
       clientId: this.clientId,
     });
-    this.eventEmitter.emit("reviewEvent", {
+    this.eventEmitter.emit('reviewEvent', {
       type,
       payload,
       reviewId: this.reviewId,
@@ -44,45 +44,45 @@ export class ReviewService {
     });
   }
 
-  private sendStatusUpdate(status: "summarizing" | "reviewing") {
+  private sendStatusUpdate(status: 'summarizing' | 'reviewing') {
     this.emitEvent(serverEvent.REVIEW_STATUS, { reviewStatus: status });
   }
 
   private async generatePrDetails(files: File[]) {
     this.emitEvent(serverEvent.THINKING_UPDATE, {
-      message: "Generating a title for your review...",
+      message: 'Generating a title for your review...',
     });
     try {
       const title = await this.aiProvider.generateReviewTitle(files);
       this.emitEvent(serverEvent.PR_TITLE, title);
     } catch (error) {
-      logger.error("Error generating review title", {
+      logger.error('Error generating review title', {
         reviewId: this.reviewId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
 
     this.emitEvent(serverEvent.THINKING_UPDATE, {
-      message: "Formulating the objective...",
+      message: 'Formulating the objective...',
     });
     try {
       const objective = await this.aiProvider.generatePrObjective(files);
       this.emitEvent(serverEvent.PR_OBJECTIVE, objective);
     } catch (error) {
-      logger.error("Error generating PR objective", {
+      logger.error('Error generating PR objective', {
         reviewId: this.reviewId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
 
     this.emitEvent(serverEvent.THINKING_UPDATE, {
-      message: "Preparing a walkthrough...",
+      message: 'Preparing a walkthrough...',
     });
     try {
       const walkThrough = await this.aiProvider.generateWalkThrough(files);
       this.emitEvent(serverEvent.WALK_THROUGH, walkThrough);
     } catch (error) {
-      logger.error("Error generating walkthrough", {
+      logger.error('Error generating walkthrough', {
         reviewId: this.reviewId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -98,31 +98,31 @@ export class ReviewService {
       if (comment.suggestions && comment.suggestions.length > 0) {
         const file = files.find((f) => f.filename === comment.filename);
         if (file) {
-          const fileLines = file.fileContent.split("\n");
+          const fileLines = file.fileContent.split('\n');
           const originalCodeBlock = fileLines
             .slice(comment.startLine - 1, comment.endLine)
-            .join("\n");
+            .join('\n');
           const suggestedCode = comment.suggestions[0];
           const patch = diff.createPatch(
             comment.filename,
             originalCodeBlock,
             suggestedCode,
-            "Original",
-            "Suggested"
+            'Original',
+            'Suggested'
           );
-          const patchLines = patch.split("\n");
+          const patchLines = patch.split('\n');
           const diffStartIndex = patchLines.findIndex((line) =>
-            line.startsWith("@@")
+            line.startsWith('@@')
           );
           const diffLines =
             diffStartIndex !== -1 ? patchLines.slice(diffStartIndex) : [];
-          suggestionDiff = "```diff\n" + diffLines.join("\n") + "\n```";
+          suggestionDiff = '```diff\n' + diffLines.join('\n') + '\n```';
         }
       }
 
       let commentWithDiff = comment.comment;
       if (suggestionDiff) {
-        commentWithDiff += "\n\n" + suggestionDiff;
+        commentWithDiff += '\n\n' + suggestionDiff;
       }
 
       const payload = {
@@ -145,20 +145,20 @@ export class ReviewService {
       const changedLinesMap = new Map<string, Set<number>>();
       for (const file of files) {
         const changedLines = new Set<number>();
-        const diffLines = file.diff.split("\n");
+        const diffLines = file.diff.split('\n');
         let currentNewLine = 0;
         for (const line of diffLines) {
-          if (line.startsWith("@@")) {
+          if (line.startsWith('@@')) {
             const match = /^@@ -\d+(,\d+)? \+(\d+)(,\d+)? @@/.exec(line);
             if (match && match[2]) {
               currentNewLine = parseInt(match[2], 10);
             } else {
               currentNewLine = 0;
             }
-          } else if (line.startsWith("+")) {
+          } else if (line.startsWith('+')) {
             changedLines.add(currentNewLine);
             currentNewLine++;
-          } else if (line.startsWith(" ")) {
+          } else if (line.startsWith(' ')) {
             currentNewLine++;
           }
         }
@@ -181,7 +181,7 @@ export class ReviewService {
           }
         }
 
-        if (comment.type === "nitpick") {
+        if (comment.type === 'nitpick') {
           // Nitpicks always go to the assertive map, regardless of diff.
           if (!assertiveFileReviewMap[comment.filename]) {
             assertiveFileReviewMap[comment.filename] = [];
@@ -222,7 +222,7 @@ export class ReviewService {
 
       this.emitEvent(serverEvent.ADDITIONAL_DETAILS, payload);
     } catch (error) {
-      logger.error("Error during comment categorization", {
+      logger.error('Error during comment categorization', {
         reviewId: this.reviewId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -231,7 +231,7 @@ export class ReviewService {
 
   private async generateAndSendSummary(comments: ReviewComment[]) {
     this.emitEvent(serverEvent.THINKING_UPDATE, {
-      message: "Generating a summary of the review...",
+      message: 'Generating a summary of the review...',
     });
     try {
       const summary = await this.aiProvider.generateReviewSummary(comments);
@@ -240,7 +240,7 @@ export class ReviewService {
       });
       this.emitEvent(serverEvent.SUMMARY_COMMENT, { summary: summary.summary });
     } catch (error) {
-      logger.error("Error generating review summary", {
+      logger.error('Error generating review summary', {
         reviewId: this.reviewId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -256,16 +256,16 @@ export class ReviewService {
   }
 
   private handleError(error: unknown) {
-    let errorMessage = "Failed to process AI review.";
+    let errorMessage = 'Failed to process AI review.';
     let eventType: ServerEvent = serverEvent.ERROR;
 
-    if (error instanceof Error && "cause" in error) {
+    if (error instanceof Error && 'cause' in error) {
       const cause = error.cause as any;
       if (
         cause?.isRetryable === true &&
-        cause?.responseBody?.includes("overloaded")
+        cause?.responseBody?.includes('overloaded')
       ) {
-        errorMessage = "The model is overloaded. Please try again later.";
+        errorMessage = 'The model is overloaded. Please try again later.';
         eventType = serverEvent.RATE_LIMIT_EXCEEDED;
       }
     }
@@ -284,7 +284,7 @@ export class ReviewService {
     const startTime = Date.now();
 
     try {
-      logger.info("Starting code review", {
+      logger.info('Starting code review', {
         reviewId: this.reviewId,
         clientId: this.clientId,
         fileCount: files.length,
@@ -294,22 +294,22 @@ export class ReviewService {
       this.emitEvent(serverEvent.STATE_UPDATE, {
         status: reviewStatus.IN_PROGRESS,
       });
-      this.sendStatusUpdate("summarizing");
+      this.sendStatusUpdate('summarizing');
 
       // Generate PR details with monitoring
       const prStartTime = Date.now();
       await this.generatePrDetails(files);
-      logger.debug("PR details generated", {
+      logger.debug('PR details generated', {
         reviewId: this.reviewId,
         duration: Date.now() - prStartTime,
       });
 
-      this.sendStatusUpdate("reviewing");
+      this.sendStatusUpdate('reviewing');
 
       // Perform code review with monitoring
       const reviewStartTime = Date.now();
       const allComments = await this.aiProvider.performCodeReview(files);
-      logger.debug("Code review completed", {
+      logger.debug('Code review completed', {
         reviewId: this.reviewId,
         commentCount: allComments.length,
         duration: Date.now() - reviewStartTime,
@@ -325,7 +325,7 @@ export class ReviewService {
       const totalDuration = Date.now() - startTime;
       monitor.completeReview(this.reviewId, allComments.length);
 
-      logger.info("Review completed successfully", {
+      logger.info('Review completed successfully', {
         reviewId: this.reviewId,
         clientId: this.clientId,
         duration: totalDuration,
@@ -338,7 +338,7 @@ export class ReviewService {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
 
-      logger.error("Review failed", {
+      logger.error('Review failed', {
         reviewId: this.reviewId,
         clientId: this.clientId,
         error: errorMessage,

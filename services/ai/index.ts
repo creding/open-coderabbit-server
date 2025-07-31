@@ -1,42 +1,42 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
-import { generateObject, LanguageModel } from "ai";
-import { z } from "zod";
-import { env } from "../../constants";
-import { ReviewComment, File } from "../../types";
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateObject, LanguageModel } from 'ai';
+import { z } from 'zod';
+import { env } from '../../constants';
+import { ReviewComment, File } from '../../types';
 import {
   retryWithBackoff,
   isRetryableAIError,
   RetryableError,
-} from "../../utils/retry";
-import { AiProvider } from "./types";
+} from '../../utils/retry';
+import { AiProvider } from './types';
 import {
   generateReviewTitlePrompt,
   generateReviewSummaryPrompt,
   generatePrObjectivePrompt,
   generateWalkThroughPrompt,
   performCodeReviewPrompt,
-} from "./prompts";
+} from './prompts';
 import {
   prObjectiveSchema,
   reviewCommentSchema,
   reviewSummarySchema,
   reviewTitleSchema,
   walkThroughSchema,
-} from "./schemas";
+} from './schemas';
 
 class UnifiedAiProvider implements AiProvider {
   private model: LanguageModel;
 
   constructor() {
     switch (env.AI_PROVIDER) {
-      case "google":
+      case 'google':
         const google = createGoogleGenerativeAI({
           apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
         });
         this.model = google(env.AI_MODEL);
         break;
-      case "openai":
+      case 'openai':
         const openai = createOpenAI({
           apiKey: env.OPENAI_API_KEY,
         });
@@ -75,7 +75,7 @@ class UnifiedAiProvider implements AiProvider {
           schema: reviewTitleSchema,
           prompt: prompt,
         }),
-      "Failed to generate review title"
+      'Failed to generate review title'
     );
     return object.title;
   }
@@ -85,8 +85,8 @@ class UnifiedAiProvider implements AiProvider {
   ): Promise<{ summary: string; shortSummary: string }> {
     if (comments.length === 0) {
       return {
-        summary: "✅ Great work! No issues were found in the code.",
-        shortSummary: "No issues found.",
+        summary: '✅ Great work! No issues were found in the code.',
+        shortSummary: 'No issues found.',
       };
     }
 
@@ -98,7 +98,7 @@ class UnifiedAiProvider implements AiProvider {
           schema: reviewSummarySchema,
           prompt: prompt,
         }),
-      "Failed to generate review summary"
+      'Failed to generate review summary'
     );
     return object;
   }
@@ -112,7 +112,7 @@ class UnifiedAiProvider implements AiProvider {
           schema: prObjectiveSchema,
           prompt: prompt,
         }),
-      "Failed to generate PR objective"
+      'Failed to generate PR objective'
     );
     return object.objective;
   }
@@ -126,7 +126,7 @@ class UnifiedAiProvider implements AiProvider {
           schema: walkThroughSchema,
           prompt: prompt,
         }),
-      "Failed to generate walkthrough"
+      'Failed to generate walkthrough'
     );
     return object.walkThrough;
   }
@@ -140,7 +140,7 @@ class UnifiedAiProvider implements AiProvider {
           schema: z.array(reviewCommentSchema),
           prompt: prompt,
         }),
-      "Failed to perform code review"
+      'Failed to perform code review'
     );
     return object as ReviewComment[];
   }

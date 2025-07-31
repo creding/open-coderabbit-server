@@ -10,7 +10,10 @@ export interface RetryOptions {
 }
 
 export class RetryableError extends Error {
-  constructor(message: string, public readonly isRetryable: boolean = true) {
+  constructor(
+    message: string,
+    public readonly isRetryable: boolean = true
+  ) {
     super(message);
     this.name = 'RetryableError';
   }
@@ -57,7 +60,7 @@ export async function retryWithBackoff<T>(
         error instanceof Error ? error.message : String(error)
       );
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
@@ -85,5 +88,5 @@ export function isRetryableAIError(error: any): boolean {
   ];
 
   const errorMessage = error.message?.toLowerCase() || '';
-  return retryableMessages.some(msg => errorMessage.includes(msg));
+  return retryableMessages.some((msg) => errorMessage.includes(msg));
 }

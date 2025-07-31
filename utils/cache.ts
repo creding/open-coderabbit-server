@@ -22,7 +22,8 @@ export class LRUCache<T> {
   private defaultTTL: number;
   private stats: CacheStats;
 
-  constructor(maxSize: number = 1000, defaultTTL: number = 3600000) { // 1 hour default
+  constructor(maxSize: number = 1000, defaultTTL: number = 3600000) {
+    // 1 hour default
     this.maxSize = maxSize;
     this.defaultTTL = defaultTTL;
     this.stats = {
@@ -39,7 +40,7 @@ export class LRUCache<T> {
 
   get(key: string): T | null {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       this.stats.misses++;
       this.updateHitRate();
@@ -70,13 +71,13 @@ export class LRUCache<T> {
 
   set(key: string, value: T, ttl?: number): void {
     const existingEntry = this.cache.get(key);
-    
+
     if (existingEntry) {
       // Update existing entry
       existingEntry.value = value;
       existingEntry.timestamp = Date.now();
       existingEntry.ttl = ttl || this.defaultTTL;
-      
+
       // Move to end
       this.cache.delete(key);
       this.cache.set(key, existingEntry);
@@ -115,14 +116,14 @@ export class LRUCache<T> {
   has(key: string): boolean {
     const entry = this.cache.get(key);
     if (!entry) return false;
-    
+
     // Check if expired
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.cache.delete(key);
       this.stats.size--;
       return false;
     }
-    
+
     return true;
   }
 
@@ -148,9 +149,9 @@ export class LRUCache<T> {
 
     if (cleaned > 0) {
       this.stats.size -= cleaned;
-      logger.debug('Cache cleanup completed', { 
-        entriesRemoved: cleaned, 
-        currentSize: this.stats.size 
+      logger.debug('Cache cleanup completed', {
+        entriesRemoved: cleaned,
+        currentSize: this.stats.size,
       });
     }
   }
@@ -176,48 +177,63 @@ export class ReviewCache {
 
   constructor() {
     this.cache = new LRUCache<ReviewComment[]>(100, 7200000); // 2 hours
-    this.summaryCache = new LRUCache<{ summary: string; shortSummary: string }>(50, 3600000); // 1 hour
+    this.summaryCache = new LRUCache<{ summary: string; shortSummary: string }>(
+      50,
+      3600000
+    ); // 1 hour
     this.titleCache = new LRUCache<string>(50, 3600000); // 1 hour
   }
 
   // Generate cache key for review based on file contents and diffs
   generateReviewKey(files: File[]): string {
-    const fileHashes = files.map(file => {
-      // Create a hash based on filename and diff
-      const content = `${file.filename}:${file.diff}`;
-      return this.fnv1aHash(content);
-    }).sort().join('|');
-    
+    const fileHashes = files
+      .map((file) => {
+        // Create a hash based on filename and diff
+        const content = `${file.filename}:${file.diff}`;
+        return this.fnv1aHash(content);
+      })
+      .sort()
+      .join('|');
+
     return `review:${this.fnv1aHash(fileHashes)}`;
   }
 
   // Generate cache key for summary based on comments
   generateSummaryKey(comments: ReviewComment[]): string {
-    const commentHashes = comments.map(comment => 
-      this.fnv1aHash(`${comment.filename}:${comment.startLine}:${comment.comment}`)
-    ).sort().join('|');
-    
+    const commentHashes = comments
+      .map((comment) =>
+        this.fnv1aHash(
+          `${comment.filename}:${comment.startLine}:${comment.comment}`
+        )
+      )
+      .sort()
+      .join('|');
+
     return `summary:${this.fnv1aHash(commentHashes)}`;
   }
 
   // Generate cache key for title based on files
   generateTitleKey(files: File[]): string {
-    const fileInfo = files.map(file => 
-      `${file.filename}:${file.newFile ? 'new' : file.deletedFile ? 'deleted' : 'modified'}`
-    ).sort().join('|');
-    
+    const fileInfo = files
+      .map(
+        (file) =>
+          `${file.filename}:${file.newFile ? 'new' : file.deletedFile ? 'deleted' : 'modified'}`
+      )
+      .sort()
+      .join('|');
+
     return `title:${this.fnv1aHash(fileInfo)}`;
   }
 
   private fnv1aHash(str: string): string {
     // FNV-1a hash algorithm for better collision resistance
     let hash = 2166136261; // FNV offset basis
-    
+
     for (let i = 0; i < str.length; i++) {
       hash ^= str.charCodeAt(i);
       hash = (hash * 16777619) >>> 0; // FNV prime, ensure 32-bit
     }
-    
+
     return hash.toString(36);
   }
 
@@ -225,13 +241,13 @@ export class ReviewCache {
   getReview(files: File[]): ReviewComment[] | null {
     const key = this.generateReviewKey(files);
     const result = this.cache.get(key);
-    
+
     if (result) {
       logger.debug('Review cache hit', { key, commentCount: result.length });
     } else {
       logger.debug('Review cache miss', { key });
     }
-    
+
     return result;
   }
 
@@ -242,20 +258,25 @@ export class ReviewCache {
   }
 
   // Summary caching
-  getSummary(comments: ReviewComment[]): { summary: string; shortSummary: string } | null {
+  getSummary(
+    comments: ReviewComment[]
+  ): { summary: string; shortSummary: string } | null {
     const key = this.generateSummaryKey(comments);
     const result = this.summaryCache.get(key);
-    
+
     if (result) {
       logger.debug('Summary cache hit', { key });
     } else {
       logger.debug('Summary cache miss', { key });
     }
-    
+
     return result;
   }
 
-  setSummary(comments: ReviewComment[], summary: { summary: string; shortSummary: string }): void {
+  setSummary(
+    comments: ReviewComment[],
+    summary: { summary: string; shortSummary: string }
+  ): void {
     const key = this.generateSummaryKey(comments);
     this.summaryCache.set(key, summary);
     logger.debug('Summary cached', { key });
@@ -265,13 +286,13 @@ export class ReviewCache {
   getTitle(files: File[]): string | null {
     const key = this.generateTitleKey(files);
     const result = this.titleCache.get(key);
-    
+
     if (result) {
       logger.debug('Title cache hit', { key });
     } else {
       logger.debug('Title cache miss', { key });
     }
-    
+
     return result;
   }
 
@@ -301,14 +322,17 @@ export class ReviewCache {
   shouldCache(files: File[]): boolean {
     // Don't cache very small reviews (likely one-off changes)
     if (files.length < 2) return false;
-    
+
     // Don't cache very large reviews (likely major refactors)
     if (files.length > 20) return false;
-    
+
     // Don't cache if total content is too large
-    const totalSize = files.reduce((sum, file) => sum + file.fileContent.length, 0);
+    const totalSize = files.reduce(
+      (sum, file) => sum + file.fileContent.length,
+      0
+    );
     if (totalSize > 500000) return false; // 500KB
-    
+
     return true;
   }
 }

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // 1. Zod Schemas
 export const fileSchema = z.object({
@@ -33,11 +33,11 @@ export type File = z.infer<typeof fileSchema>;
 export type ExtensionEvent = z.infer<typeof extensionEventSchema>;
 
 export const issueType = {
-  POTENTIAL_ISSUE: "potential_issue",
-  REFACTOR_SUGGESTION: "refactor_suggestion",
-  NITPICK: "nitpick",
-  VERIFICATION: "verification",
-  OTHER: "other",
+  POTENTIAL_ISSUE: 'potential_issue',
+  REFACTOR_SUGGESTION: 'refactor_suggestion',
+  NITPICK: 'nitpick',
+  VERIFICATION: 'verification',
+  OTHER: 'other',
 } as const;
 
 export const reviewCommentSchema = z.object({
@@ -82,28 +82,28 @@ export type EventPayload =
   | {};
 
 export const serverEvent = {
-  REVIEW_COMPLETED: "review_completed",
-  SHORT_SUMMARY: "short_summary",
-  SUMMARY_COMMENT: "summary_comment",
-  PR_TITLE: "pr_title",
-  PR_OBJECTIVE: "pr_objective",
-  WALK_THROUGH: "walk_through",
-  REVIEW_COMMENT: "review_comment",
-  ADDITIONAL_DETAILS: "additional_details",
-  THINKING_UPDATE: "thinking_update",
-  REVIEW_STATUS: "review_status",
-  STATE_UPDATE: "state_update",
-  RATE_LIMIT_EXCEEDED: "rate_limit_exceeded",
-  ERROR: "error",
+  REVIEW_COMPLETED: 'review_completed',
+  SHORT_SUMMARY: 'short_summary',
+  SUMMARY_COMMENT: 'summary_comment',
+  PR_TITLE: 'pr_title',
+  PR_OBJECTIVE: 'pr_objective',
+  WALK_THROUGH: 'walk_through',
+  REVIEW_COMMENT: 'review_comment',
+  ADDITIONAL_DETAILS: 'additional_details',
+  THINKING_UPDATE: 'thinking_update',
+  REVIEW_STATUS: 'review_status',
+  STATE_UPDATE: 'state_update',
+  RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
+  ERROR: 'error',
 } as const;
 
 export type ServerEvent = (typeof serverEvent)[keyof typeof serverEvent];
 
 export const reviewStatus = {
-  IN_PROGRESS: "in_progress",
-  COMPLETED: "completed",
-  FAILED: "failed",
-  CANCELLED: "cancelled",
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled',
 } as const;
 
 export type ReviewStatus = (typeof reviewStatus)[keyof typeof reviewStatus];
@@ -113,7 +113,9 @@ export const additionalDetailsPayloadSchema = z.object({
   assertiveComments: z.record(z.string(), z.array(reviewCommentSchema)),
   additionalComments: z.record(z.string(), z.array(reviewCommentSchema)),
   outsideDiffRangeComments: z.array(reviewCommentSchema),
-  duplicateComments: z.record(z.string(), z.array(reviewCommentSchema)).optional(),
+  duplicateComments: z
+    .record(z.string(), z.array(reviewCommentSchema))
+    .optional(),
 });
 
 export type AdditionalDetailsPayload = z.infer<

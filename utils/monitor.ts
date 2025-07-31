@@ -64,7 +64,7 @@ export class Monitor {
   constructor() {
     this.startTime = Date.now();
     this.metrics = this.initializeMetrics();
-    
+
     // Update CPU usage periodically
     this.lastCpuUsage = process.cpuUsage();
     setInterval(() => {
@@ -128,11 +128,11 @@ export class Monitor {
       fileCount,
       status: 'in_progress',
     };
-    
+
     this.activeReviews.set(reviewId, reviewMetrics);
     this.metrics.reviews.total++;
     this.metrics.reviews.inProgress++;
-    
+
     logger.reviewStarted(reviewId, clientId, fileCount);
   }
 
@@ -148,7 +148,7 @@ export class Monitor {
     this.metrics.reviews.completed++;
     this.metrics.reviews.inProgress--;
     this.updateReviewAverages(duration, review.fileCount, commentCount);
-    
+
     this.activeReviews.delete(reviewId);
     logger.reviewCompleted(reviewId, review.clientId, duration, commentCount);
   }
@@ -164,23 +164,31 @@ export class Monitor {
 
     this.metrics.reviews.failed++;
     this.metrics.reviews.inProgress--;
-    
+
     this.activeReviews.delete(reviewId);
     logger.reviewFailed(reviewId, review.clientId, error, duration);
   }
 
-  private updateReviewAverages(duration: number, fileCount: number, commentCount: number): void {
+  private updateReviewAverages(
+    duration: number,
+    fileCount: number,
+    commentCount: number
+  ): void {
     const completed = this.metrics.reviews.completed;
-    
+
     // Update running averages
-    this.metrics.reviews.averageDuration = 
-      (this.metrics.reviews.averageDuration * (completed - 1) + duration) / completed;
-    
-    this.metrics.reviews.averageFileCount = 
-      (this.metrics.reviews.averageFileCount * (completed - 1) + fileCount) / completed;
-    
-    this.metrics.reviews.averageCommentCount = 
-      (this.metrics.reviews.averageCommentCount * (completed - 1) + commentCount) / completed;
+    this.metrics.reviews.averageDuration =
+      (this.metrics.reviews.averageDuration * (completed - 1) + duration) /
+      completed;
+
+    this.metrics.reviews.averageFileCount =
+      (this.metrics.reviews.averageFileCount * (completed - 1) + fileCount) /
+      completed;
+
+    this.metrics.reviews.averageCommentCount =
+      (this.metrics.reviews.averageCommentCount * (completed - 1) +
+        commentCount) /
+      completed;
   }
 
   // AI operation tracking
@@ -192,18 +200,23 @@ export class Monitor {
       success: false,
       retryCount: 0,
     };
-    
+
     this.aiOperations.push(aiMetrics);
     this.metrics.ai.requests++;
-    
+
     return operationId;
   }
 
-  completeAIOperation(operation: string, success: boolean, retryCount: number = 0, error?: string): void {
-    const aiOp = this.aiOperations.find(op => 
-      op.operation === operation && !op.endTime
+  completeAIOperation(
+    operation: string,
+    success: boolean,
+    retryCount: number = 0,
+    error?: string
+  ): void {
+    const aiOp = this.aiOperations.find(
+      (op) => op.operation === operation && !op.endTime
     );
-    
+
     if (!aiOp) return;
 
     const duration = Date.now() - aiOp.startTime;
@@ -217,16 +230,16 @@ export class Monitor {
     } else {
       this.metrics.ai.failed++;
     }
-    
+
     this.metrics.ai.retries += retryCount;
     this.updateAIAverages(duration);
-    
+
     logger.aiRequest(operation, duration, success, error);
   }
 
   private updateAIAverages(duration: number): void {
     const total = this.metrics.ai.successful + this.metrics.ai.failed;
-    this.metrics.ai.averageDuration = 
+    this.metrics.ai.averageDuration =
       (this.metrics.ai.averageDuration * (total - 1) + duration) / total;
   }
 
@@ -237,14 +250,17 @@ export class Monitor {
   }
 
   removeConnection(): void {
-    this.metrics.connections.active = Math.max(0, this.metrics.connections.active - 1);
+    this.metrics.connections.active = Math.max(
+      0,
+      this.metrics.connections.active - 1
+    );
   }
 
   // System metrics
   private updateSystemMetrics(): void {
     this.metrics.system.uptime = Date.now() - this.startTime;
     this.metrics.system.memoryUsage = process.memoryUsage();
-    
+
     if (this.lastCpuUsage) {
       this.metrics.system.cpuUsage = process.cpuUsage(this.lastCpuUsage);
       this.lastCpuUsage = process.cpuUsage();
@@ -258,14 +274,17 @@ export class Monitor {
   }
 
   // Get health status
-  getHealthStatus(): { status: 'healthy' | 'degraded' | 'unhealthy'; issues: string[] } {
+  getHealthStatus(): {
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    issues: string[];
+  } {
     const issues: string[] = [];
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
     // Check memory usage
     const memUsage = this.metrics.system.memoryUsage;
     const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-    
+
     if (memUsagePercent > 90) {
       issues.push('High memory usage');
       status = 'unhealthy';
@@ -275,10 +294,11 @@ export class Monitor {
     }
 
     // Check AI failure rate
-    const aiFailureRate = this.metrics.ai.requests > 0 
-      ? (this.metrics.ai.failed / this.metrics.ai.requests) * 100 
-      : 0;
-    
+    const aiFailureRate =
+      this.metrics.ai.requests > 0
+        ? (this.metrics.ai.failed / this.metrics.ai.requests) * 100
+        : 0;
+
     if (aiFailureRate > 50) {
       issues.push('High AI failure rate');
       status = 'unhealthy';
@@ -288,10 +308,11 @@ export class Monitor {
     }
 
     // Check review failure rate
-    const reviewFailureRate = this.metrics.reviews.total > 0 
-      ? (this.metrics.reviews.failed / this.metrics.reviews.total) * 100 
-      : 0;
-    
+    const reviewFailureRate =
+      this.metrics.reviews.total > 0
+        ? (this.metrics.reviews.failed / this.metrics.reviews.total) * 100
+        : 0;
+
     if (reviewFailureRate > 30) {
       issues.push('High review failure rate');
       status = 'unhealthy';
@@ -302,9 +323,9 @@ export class Monitor {
 
     // Check for stuck reviews
     const stuckReviews = Array.from(this.activeReviews.values()).filter(
-      review => Date.now() - review.startTime > 600000 // 10 minutes
+      (review) => Date.now() - review.startTime > 600000 // 10 minutes
     );
-    
+
     if (stuckReviews.length > 0) {
       issues.push(`${stuckReviews.length} stuck review(s)`);
       status = status === 'healthy' ? 'degraded' : status;
