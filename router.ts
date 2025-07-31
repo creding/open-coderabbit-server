@@ -1,16 +1,14 @@
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import { observable } from "@trpc/server/observable";
-import * as diff from "diff";
 import { EventEmitter } from "events";
 import { ReviewService } from "./services/reviewService";
 import {
   serverEvent,
   reviewStatus,
   ServerEvent,
-  ReviewComment,
-  AdditionalDetailsPayload,
   EventPayload,
+  ReviewEvent,
 } from "./types";
 
 // 1. Zod Schemas: Define the shape of our data
@@ -44,38 +42,10 @@ const extensionEventSchema = z.object({
 
 // 2. Inferred Types: Create TypeScript types from Zod schemas
 type File = z.infer<typeof fileSchema>;
-type ExtensionEvent = z.infer<typeof extensionEventSchema>;
-
-// Define the structure of events sent to the client
-interface ReviewEvent {
-  type: ServerEvent;
-  payload: EventPayload;
-  reviewId: string;
-  clientId: string;
-  endedAt?: string;
-  error?: string;
-}
 
 // 3. tRPC Initialization
 const t = initTRPC.create();
 const eventEmitter = new EventEmitter();
-
-// 4. Routers
-const accessTokenRouter = t.router({
-  // ... (keeping this brief as it's not the focus)
-});
-
-const organizationsRouter = t.router({
-  // ...
-});
-
-const reviewsRouter = t.router({
-  // ...
-});
-
-const testingRouter = t.router({
-  // ...
-});
 
 const vsCodeRouter = t.router({
   subscribeToEvents: t.procedure
@@ -84,14 +54,6 @@ const vsCodeRouter = t.router({
       return observable<ReviewEvent>((emit) => {
         const onReviewEvent = (data: ReviewEvent) => {
           if (data.clientId === input.clientId) {
-            console.log(
-              `📡 Sending event to client ${data.clientId}: ${data.type}`
-            );
-            console.log(
-              `📡 Event payload:`,
-              JSON.stringify(data.payload, null, 2)
-            );
-            console.log(`📡 Full event:`, JSON.stringify(data, null, 2));
             emit.next(data);
           }
         };
@@ -150,10 +112,6 @@ const vsCodeRouter = t.router({
 
 // 5. Export the main router
 export const appRouter = t.router({
-  accessToken: accessTokenRouter,
-  organizations: organizationsRouter,
-  reviews: reviewsRouter,
-  testing: testingRouter,
   vsCode: vsCodeRouter,
 });
 
