@@ -44,6 +44,10 @@ export async function retryWithBackoff<T>(
         break;
       }
 
+      if (error instanceof RetryableError && !error.isRetryable) {
+        throw error;
+      }
+
       // Check if error is retryable
       if (!retryCondition(error)) {
         throw error;
