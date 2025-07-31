@@ -14,6 +14,8 @@ import {
   ReviewComment,
   AdditionalDetailsPayload,
   ServerEvent,
+  EventPayload,
+  ReviewStatus,
 } from "../types";
 
 export class ReviewService {
@@ -23,7 +25,7 @@ export class ReviewService {
     private clientId: string
   ) {}
 
-  private emitEvent(type: ServerEvent, payload: any, endedAt?: string) {
+  private emitEvent(type: ServerEvent, payload: EventPayload, endedAt?: string) {
     console.log(`📡 Emitting ${type} for review ${this.reviewId}`);
     this.eventEmitter.emit("reviewEvent", {
       type,
@@ -176,21 +178,34 @@ export class ReviewService {
     }
   }
 
-  private sendCompletionEvent(status: string) {
-    this.emitEvent(serverEvent.REVIEW_COMPLETED, { status }, new Date().toISOString());
+  private sendCompletionEvent(status: ReviewStatus) {
+    this.emitEvent(
+      serverEvent.REVIEW_COMPLETED,
+      { status },
+      new Date().toISOString()
+    );
   }
 
   private handleError(error: unknown) {
     let errorMessage = "Failed to process AI review.";
+    let eventType: ServerEvent = serverEvent.ERROR;
+
     if (error instanceof Error && "cause" in error) {
       const cause = error.cause as any;
       if (cause?.isRetryable === true && cause?.responseBody?.includes("overloaded")) {
         errorMessage = "The model is overloaded. Please try again later.";
+        eventType = serverEvent.RATE_LIMIT_EXCEEDED;
       }
     }
-    this.emitEvent(serverEvent.RATE_LIMIT_EXCEEDED, { message: errorMessage });
+
+    // 1. Send the specific error event to the client.
+    this.emitEvent(eventType, { message: errorMessage });
+
+    // 2. Update the UI state to 'failed'.
     this.emitEvent(serverEvent.STATE_UPDATE, { status: reviewStatus.FAILED });
-    this.emitEvent(serverEvent.REVIEW_COMPLETED, {});
+
+    // 3. Send the final terminal event to stop the review process.
+    this.sendCompletionEvent(reviewStatus.FAILED);
   }
 
   public async run(files: File[]) {

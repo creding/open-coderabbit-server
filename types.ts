@@ -33,35 +33,62 @@ export const fileSchema = z.object({
 
 export type File = z.infer<typeof fileSchema>;
 
+// 4. Strongly-typed Payloads
+export type ReviewStatusUpdatePayload = { reviewStatus: string };
+export type ThinkingUpdatePayload = { message: string };
+export type PrTitlePayload = string;
+export type PrObjectivePayload = string;
+export type WalkThroughPayload = string;
+export type ShortSummaryPayload = { summary: string };
+export type SummaryCommentPayload = { summary: string };
+export type StateUpdatePayload = { status: ReviewStatus };
+export type ErrorPayload = { message: string };
+export type RateLimitExceededPayload = { message: string };
+export type ReviewCompletedPayload = { status?: ReviewStatus };
+
+export type EventPayload =
+  | ReviewStatusUpdatePayload
+  | ThinkingUpdatePayload
+  | PrTitlePayload
+  | PrObjectivePayload
+  | WalkThroughPayload
+  | ReviewComment
+  | AdditionalDetailsPayload
+  | ShortSummaryPayload
+  | SummaryCommentPayload
+  | StateUpdatePayload
+  | ErrorPayload
+  | RateLimitExceededPayload
+  | ReviewCompletedPayload
+  | {}; // For empty payloads
+
 
 export const serverEvent = {
   REVIEW_COMPLETED: 'review_completed',
-  REVIEW_COMMENT: 'review_comment',
-  STATE_UPDATE: 'state_update',
-  ERROR: 'error',
-  RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
-  REVIEW_STATUS: 'review_status',
-  SUMMARY_COMMENT: 'summary_comment',
   SHORT_SUMMARY: 'short_summary',
-  THINKING_UPDATE: 'thinking_update',
-  WALK_THROUGH: 'walk_through',
-  PR_OBJECTIVE: 'pr_objective',
+  SUMMARY_COMMENT: 'summary_comment',
   PR_TITLE: 'pr_title',
+  PR_OBJECTIVE: 'pr_objective',
+  WALK_THROUGH: 'walk_through',
+  REVIEW_COMMENT: 'review_comment',
   ADDITIONAL_DETAILS: 'additional_details',
+  THINKING_UPDATE: 'thinking_update',
+  REVIEW_STATUS: 'review_status',
+  STATE_UPDATE: 'state_update',
+  RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
+  ERROR: 'error',
 } as const;
 
 export type ServerEvent = typeof serverEvent[keyof typeof serverEvent];
 
 export const reviewStatus = {
-  CANCELLED: 'cancelled',
+  IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
   FAILED: 'failed',
-  IN_PROGRESS: 'in_progress',
-  PENDING: 'pending',
+  CANCELLED: 'cancelled',
 } as const;
 
 export type ReviewStatus = typeof reviewStatus[keyof typeof reviewStatus];
-
 
 
 export interface AdditionalDetailsPayload {

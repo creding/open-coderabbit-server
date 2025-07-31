@@ -10,6 +10,7 @@ import {
   ServerEvent,
   ReviewComment,
   AdditionalDetailsPayload,
+  EventPayload,
 } from "./types";
 
 // 1. Zod Schemas: Define the shape of our data
@@ -48,7 +49,7 @@ type ExtensionEvent = z.infer<typeof extensionEventSchema>;
 // Define the structure of events sent to the client
 interface ReviewEvent {
   type: ServerEvent;
-  payload: any;
+  payload: EventPayload;
   reviewId: string;
   clientId: string;
   endedAt?: string;
