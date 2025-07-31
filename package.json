@@ -1,0 +1,32 @@
+{
+  "name": "coderabbit-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ai-sdk/google": "^2.0.0-beta.18",
+    "@ai-sdk/openai": "^2.0.0-beta.15",
+    "@trpc/server": "^10.45.2",
+    "ai": "^5.0.0-beta.33",
+    "cors": "^2.8.5",
+    "diff": "^8.0.2",
+    "dotenv": "^17.2.1",
+    "ws": "^8.18.3",
+    "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "@types/diff": "^8.0.0",
+    "@types/node": "^24.1.0",
+    "@types/ws": "^8.18.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
