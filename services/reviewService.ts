@@ -185,17 +185,21 @@ export class ReviewService {
         }
 
         if (comment.type === "nitpick") {
+          // Nitpicks always go to the assertive map, regardless of diff.
           if (!assertiveFileReviewMap[comment.filename]) {
             assertiveFileReviewMap[comment.filename] = [];
           }
           assertiveFileReviewMap[comment.filename].push(comment);
-        } else if (!inDiff) {
-          outsideDiffRangeComments.push(comment);
         } else {
-          if (!fileReviewMap[comment.filename]) {
-            fileReviewMap[comment.filename] = [];
+          // Other comments are categorized based on diff location.
+          if (inDiff) {
+            if (!fileReviewMap[comment.filename]) {
+              fileReviewMap[comment.filename] = [];
+            }
+            fileReviewMap[comment.filename].push(comment);
+          } else {
+            outsideDiffRangeComments.push(comment);
           }
-          fileReviewMap[comment.filename].push(comment);
         }
       }
 
@@ -313,19 +317,6 @@ export class ReviewService {
         commentCount: allComments.length,
         duration: Date.now() - reviewStartTime,
       });
-
-      // Add a mock nitpick comment for testing
-      if (files.length > 0) {
-        const mockNitpick: ReviewComment = {
-          filename: files[0].filename,
-          startLine: 1,
-          endLine: 1,
-          comment: "This is a mock nitpick comment for testing purposes.",
-          type: "nitpick",
-        };
-        allComments.push(mockNitpick);
-        logger.info("Injected mock nitpick comment for testing.");
-      }
 
       allComments.sort(
         (a: ReviewComment, b: ReviewComment) => b.startLine - a.startLine
