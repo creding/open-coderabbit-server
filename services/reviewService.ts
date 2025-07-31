@@ -1,6 +1,21 @@
 import { EventEmitter } from "events";
-import { performCodeReview, generateReviewSummary, generateReviewTitle, generatePrObjective, generateWalkThrough } from "./ai";
-import { serverEvent, reviewStatus, ReviewComment, File, AdditionalDetailsPayload, ServerEvent, EventPayload, ReviewStatus } from "../types";
+import {
+  performCodeReview,
+  generateReviewSummary,
+  generateReviewTitle,
+  generatePrObjective,
+  generateWalkThrough,
+} from "./ai";
+import {
+  serverEvent,
+  reviewStatus,
+  ReviewComment,
+  File,
+  AdditionalDetailsPayload,
+  ServerEvent,
+  EventPayload,
+  ReviewStatus,
+} from "../types";
 import * as diff from "diff";
 import { logger } from "../utils/logger";
 import { monitor } from "../utils/monitor";
@@ -17,7 +32,10 @@ export class ReviewService {
     payload: EventPayload,
     endedAt?: string
   ) {
-    logger.debug(`Emitting ${type}`, { reviewId: this.reviewId, clientId: this.clientId });
+    logger.debug(`Emitting ${type}`, {
+      reviewId: this.reviewId,
+      clientId: this.clientId,
+    });
     this.eventEmitter.emit("reviewEvent", {
       type,
       payload,
@@ -41,7 +59,7 @@ export class ReviewService {
     } catch (error) {
       logger.error("Error generating review title", {
         reviewId: this.reviewId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
 
@@ -54,7 +72,7 @@ export class ReviewService {
     } catch (error) {
       logger.error("Error generating PR objective", {
         reviewId: this.reviewId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
 
@@ -67,7 +85,7 @@ export class ReviewService {
     } catch (error) {
       logger.error("Error generating walkthrough", {
         reviewId: this.reviewId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -116,7 +134,7 @@ export class ReviewService {
         codegenInstructions: comment.codegenInstructions,
       };
 
-      if (!comment.isNitpick) {
+      if (comment.type !== "nitpick") {
         this.emitEvent(serverEvent.REVIEW_COMMENT, payload);
       }
     }
@@ -166,7 +184,7 @@ export class ReviewService {
           }
         }
 
-        if (comment.isNitpick) {
+        if (comment.type === "nitpick") {
           if (!assertiveFileReviewMap[comment.filename]) {
             assertiveFileReviewMap[comment.filename] = [];
           }
@@ -205,7 +223,7 @@ export class ReviewService {
     } catch (error) {
       logger.error("Error during comment categorization", {
         reviewId: this.reviewId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -223,7 +241,7 @@ export class ReviewService {
     } catch (error) {
       logger.error("Error generating review summary", {
         reviewId: this.reviewId,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -263,66 +281,82 @@ export class ReviewService {
 
   public async run(files: File[]) {
     const startTime = Date.now();
-    
+
     try {
-      logger.info('Starting code review', {
+      logger.info("Starting code review", {
         reviewId: this.reviewId,
         clientId: this.clientId,
         fileCount: files.length,
-        totalSize: files.reduce((sum, f) => sum + f.fileContent.length, 0)
+        totalSize: files.reduce((sum, f) => sum + f.fileContent.length, 0),
       });
-      
+
       this.emitEvent(serverEvent.STATE_UPDATE, {
         status: reviewStatus.IN_PROGRESS,
       });
       this.sendStatusUpdate("summarizing");
-      
+
       // Generate PR details with monitoring
       const prStartTime = Date.now();
       await this.generatePrDetails(files);
-      logger.debug('PR details generated', {
+      logger.debug("PR details generated", {
         reviewId: this.reviewId,
-        duration: Date.now() - prStartTime
+        duration: Date.now() - prStartTime,
       });
-      
+
       this.sendStatusUpdate("reviewing");
 
       // Perform code review with monitoring
       const reviewStartTime = Date.now();
       const allComments = await performCodeReview(files);
-      logger.debug('Code review completed', {
+      logger.debug("Code review completed", {
         reviewId: this.reviewId,
         commentCount: allComments.length,
-        duration: Date.now() - reviewStartTime
+        duration: Date.now() - reviewStartTime,
       });
 
-      allComments.sort((a: ReviewComment, b: ReviewComment) => b.startLine - a.startLine);
+      // Add a mock nitpick comment for testing
+      if (files.length > 0) {
+        const mockNitpick: ReviewComment = {
+          filename: files[0].filename,
+          startLine: 1,
+          endLine: 1,
+          comment: "This is a mock nitpick comment for testing purposes.",
+          type: "nitpick",
+        };
+        allComments.push(mockNitpick);
+        logger.info("Injected mock nitpick comment for testing.");
+      }
+
+      allComments.sort(
+        (a: ReviewComment, b: ReviewComment) => b.startLine - a.startLine
+      );
       await this.processAndSendComments(allComments, files);
       await this.categorizeAndSendDetails(allComments, files);
       await this.generateAndSendSummary(allComments);
-      
+
       const totalDuration = Date.now() - startTime;
       monitor.completeReview(this.reviewId, allComments.length);
-      
-      logger.info('Review completed successfully', {
+
+      logger.info("Review completed successfully", {
         reviewId: this.reviewId,
         clientId: this.clientId,
         duration: totalDuration,
-        commentCount: allComments.length
+        commentCount: allComments.length,
       });
-      
+
       this.sendCompletionEvent(reviewStatus.COMPLETED);
     } catch (error) {
       const duration = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      
-      logger.error('Review failed', {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      logger.error("Review failed", {
         reviewId: this.reviewId,
         clientId: this.clientId,
         error: errorMessage,
-        duration
+        duration,
       });
-      
+
       monitor.failReview(this.reviewId, errorMessage);
       this.handleError(error);
     }
