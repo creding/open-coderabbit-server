@@ -13,13 +13,15 @@ The extension communicates with the server via tRPC (TypeScript RPC) over WebSoc
 **Purpose**: Establishes a persistent WebSocket connection for receiving real-time review events.
 
 **Request Structure**:
+
 ```typescript
 {
-  clientId: string  // Unique identifier for the extension instance
+  clientId: string; // Unique identifier for the extension instance
 }
 ```
 
 **Example**:
+
 ```json
 {
   "clientId": "ac0028a301a86e86a6b7edb9745dd6b42fb9548c064de0c910720f8552c011cf"
@@ -31,6 +33,7 @@ The extension communicates with the server via tRPC (TypeScript RPC) over WebSoc
 **Purpose**: Initiates a code review by sending file contents and diffs to the server.
 
 **Request Structure**:
+
 ```typescript
 {
   extensionEvent: {
@@ -42,11 +45,12 @@ The extension communicates with the server via tRPC (TypeScript RPC) over WebSoc
 ```
 
 **File Structure**:
+
 ```typescript
 interface File {
-  filename: string,      // Relative path to the file
-  fileContent: string,   // Complete file content
-  diff: string          // Git diff in unified format
+  filename: string; // Relative path to the file
+  fileContent: string; // Complete file content
+  diff: string; // Git diff in unified format
 }
 ```
 
@@ -55,10 +59,11 @@ interface File {
 **Purpose**: Cancels an ongoing review process.
 
 **Request Structure**:
+
 ```typescript
 {
   extensionEvent: {
-    reviewId: string      // ID of the review to stop
+    reviewId: string; // ID of the review to stop
   }
 }
 ```
@@ -68,6 +73,7 @@ interface File {
 Based on actual server logs, here's what the extension sent in a recent request:
 
 ### Request Metadata
+
 - **Review ID**: `6a5899c8-4e38-4e07-93ef-a058aaafb7a1`
 - **Client ID**: `ac0028a301a86e86a6b7edb9745dd6b42fb9548c064de0c910720f8552c011cf`
 - **Timestamp**: `2025-08-01T19:32:27.792Z`
@@ -77,6 +83,7 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ### Files Sent
 
 #### File 1: README.md
+
 ```json
 {
   "filename": "README.md",
@@ -90,6 +97,7 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ```
 
 #### File 2: docker-compose.dev.yml
+
 ```json
 {
   "filename": "docker-compose.dev.yml",
@@ -103,6 +111,7 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ```
 
 #### File 3: docker-compose.yml
+
 ```json
 {
   "filename": "docker-compose.yml",
@@ -116,6 +125,7 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ```
 
 #### File 4: src/router.ts
+
 ```json
 {
   "filename": "src/router.ts",
@@ -129,6 +139,7 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ```
 
 #### File 5: vitest.config.js
+
 ```json
 {
   "filename": "vitest.config.js",
@@ -144,16 +155,19 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ## Data Characteristics
 
 ### File Content
+
 - **Complete file content**: Extension sends the entire file content, not just changed lines
 - **UTF-8 encoded**: All content is sent as UTF-8 strings
 - **Preserved formatting**: Line breaks, indentation, and whitespace are maintained
 
 ### Git Diffs
+
 - **Unified diff format**: Standard Git diff format with headers
 - **Complete context**: Includes file hashes, line numbers, and context lines
 - **Change indicators**: Uses `+` for additions, `-` for deletions, ` ` for context
 
 ### Identifiers
+
 - **Review ID**: UUID v4 format (e.g., `6a5899c8-4e38-4e07-93ef-a058aaafb7a1`)
 - **Client ID**: SHA-256 hash format for unique extension identification
 - **Filenames**: Relative paths from repository root
@@ -175,15 +189,18 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ## Error Handling
 
 ### Rate Limiting
+
 - **Limit**: Configurable requests per time window
 - **Response**: `TOO_MANY_REQUESTS` with retry information
 
 ### File Validation
+
 - **Size limits**: Maximum file size and total request size
 - **File type validation**: Supported file extensions
 - **Content validation**: UTF-8 encoding requirements
 
 ### AI Provider Errors
+
 - **Retry logic**: Automatic retries with exponential backoff
 - **Fallback**: Graceful degradation for streaming failures
 
@@ -197,6 +214,7 @@ Based on actual server logs, here's what the extension sent in a recent request:
 ## Monitoring and Debugging
 
 The server logs comprehensive information for each request:
+
 - Complete request payload (with size limits for large content)
 - File-by-file breakdown with metadata
 - Processing timestamps and durations
