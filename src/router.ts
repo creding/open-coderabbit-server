@@ -32,7 +32,7 @@ const vsCodeRouter = t.router({
   subscribeToEvents: t.procedure
     .input(z.object({ clientId: z.string() }))
     .subscription(({ input }) => {
-      logger.info('Extension subscription started', {
+      logger.debug('Extension subscription started', {
         clientId: input.clientId,
         timestamp: new Date().toISOString(),
       });
@@ -50,7 +50,7 @@ const vsCodeRouter = t.router({
         };
         eventEmitter.on('reviewEvent', onReviewEvent);
         return () => {
-          logger.info('Extension subscription ended', {
+          logger.debug('Extension subscription ended', {
             clientId: input.clientId,
             timestamp: new Date().toISOString(),
           });
@@ -65,13 +65,13 @@ const vsCodeRouter = t.router({
       const { reviewId, files, clientId } = input.extensionEvent;
 
       // Log complete extension event data
-      logger.info('=== EXTENSION REQUEST START ===', {
+      logger.debug('=== EXTENSION REQUEST START ===', {
         reviewId,
         clientId,
         timestamp: new Date().toISOString(),
       });
 
-      logger.info('Extension Event Details:', {
+      logger.debug('Extension Event Details:', {
         reviewId,
         clientId,
         fileCount: files?.length || 0,
@@ -80,7 +80,7 @@ const vsCodeRouter = t.router({
 
       // Log each file in detail
       if (files && files.length > 0) {
-        logger.info('Files received from extension:', {
+        logger.debug('Files received from extension:', {
           reviewId,
           totalFiles: files.length,
         });
@@ -93,7 +93,7 @@ const vsCodeRouter = t.router({
             file.diff?.substring(0, 200) +
             (file.diff?.length > 200 ? '...' : '');
 
-          logger.info(`File ${index + 1}/${files.length}:`, {
+          logger.debug(`File ${index + 1}/${files.length}:`, {
             reviewId,
             filename: file.filename,
             contentLength: file.fileContent?.length || 0,
@@ -108,9 +108,9 @@ const vsCodeRouter = t.router({
         logger.warn('No files received from extension', { reviewId, clientId });
       }
 
-      logger.info('=== EXTENSION REQUEST END ===', { reviewId });
+      logger.debug('=== EXTENSION REQUEST END ===', { reviewId });
 
-      logger.info('Received review request', {
+      logger.debug('Received review request', {
         reviewId,
         fileCount: files?.length || 0,
         clientId,
@@ -203,7 +203,7 @@ const vsCodeRouter = t.router({
     .mutation(({ input }) => {
       const { reviewId } = input.extensionEvent;
 
-      logger.info('=== EXTENSION STOP REQUEST ===', {
+      logger.debug('=== EXTENSION STOP REQUEST ===', {
         reviewId,
         timestamp: new Date().toISOString(),
         extensionEvent: JSON.stringify(input.extensionEvent, null, 2),
@@ -217,7 +217,7 @@ const vsCodeRouter = t.router({
         endedAt: new Date().toISOString(),
       });
 
-      logger.info('Stop review event emitted', { reviewId });
+      logger.debug('Stop review event emitted', { reviewId });
 
       return {
         success: true,

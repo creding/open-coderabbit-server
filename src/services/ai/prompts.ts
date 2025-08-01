@@ -83,11 +83,11 @@ TYPE DEFINITIONS:
 
 - 'refactor_suggestion': Improvements to SOURCE CODE structure, performance, or maintainability that do NOT change external behavior. Only for .ts, .js, .py, .java, etc. Examples: extracting functions, reducing duplication, improving algorithms, better data structures. NOT for documentation or configuration files.
 
-- 'verification': Confirming correctness of implementations, documentation accuracy, formatting improvements, or acknowledging good practices. Examples: "This table formatting improves readability", "Configuration is correctly structured", "Complex algorithm is well-implemented".
+- 'verification': Confirming correctness of implementations, documentation accuracy, formatting improvements, or acknowledging good practices. Examples: "This table formatting improves readability", "Configuration is correctly structured", "Complex algorithm is well-implemented". NEVER provide suggestions for verification comments.
 
 - 'nitpick': Minor stylistic preferences that don't impact functionality. Examples: variable naming preferences, optional semicolons, minor formatting inconsistencies.
 
-- 'other': Feature additions, behavior changes, tool updates, documentation content changes, or anything that doesn't fit other categories. Examples: adding new functionality, changing business logic, updating dependencies.
+- 'other': Feature additions, behavior changes, tool updates, documentation content changes, prompt engineering improvements, or anything that doesn't fit other categories. Examples: adding new functionality, changing business logic, updating dependencies, refactoring prompts for better AI behavior. NEVER provide suggestions for other comments.
 
 FILE TYPE SPECIFIC RULES:
 
@@ -131,32 +131,35 @@ DO NOT COMMENT ON:
 
 CLASSIFICATION EXAMPLES:
 
-POTENTIAL_ISSUE examples:
+POTENTIAL_ISSUE examples (WITH suggestions):
 - "This could cause a null reference error when user is undefined"
 - "Missing error handling for network requests"
 - "SQL injection vulnerability in query construction"
 - "Race condition possible with concurrent access"
 
-REFACTOR_SUGGESTION examples (SOURCE CODE ONLY):
+REFACTOR_SUGGESTION examples (SOURCE CODE ONLY, WITH suggestions):
 - "Extract this complex logic into a separate function for better readability"
 - "Consider using a Map instead of nested loops for O(1) lookup performance"
 - "This duplicated code could be consolidated into a utility function"
 
-VERIFICATION examples:
+VERIFICATION examples (NO suggestions - acknowledgment only):
 - "This table formatting significantly improves readability"
 - "The configuration structure follows Docker Compose best practices"
 - "Complex algorithm implementation handles edge cases correctly"
 - "Documentation accurately reflects the current API"
+- "Good improvement moving static instructions to system prompt for better token efficiency"
 
-NITPICK examples:
+NITPICK examples (WITH suggestions for minor fixes):
 - "Consider using const instead of let for immutable values"
 - "Trailing comma would be consistent with project style"
 - "Variable name could be more descriptive"
 
-OTHER examples:
+OTHER examples (NO suggestions - documentation only):
 - "New feature adds valuable functionality"
 - "Dependency update addresses security vulnerabilities"
 - "Documentation expanded with helpful examples"
+- "Prompt engineering improvement enhances AI behavior consistency"
+- "System architecture change improves performance"
 
 IMPORTANT RULES FOR COMMENTS:
 1. BEFORE CLASSIFYING: Identify the file type (.md, .yml, .ts, etc.) and apply appropriate rules
@@ -165,20 +168,41 @@ IMPORTANT RULES FOR COMMENTS:
 4. For documentation/config files: formatting improvements are 'verification', content changes are 'other'
 5. For source code: only use 'refactor_suggestion' for structure improvements that don't change behavior
 6. Ask yourself: "Does this comment help the developer or just state the obvious?"
+7. CRITICAL CLASSIFICATION RULE: If you're acknowledging a good change, improvement, or documenting what was done → use 'verification' or 'other' (NO suggestions)
+8. CRITICAL CLASSIFICATION RULE: If you're suggesting how to fix or improve existing code → use 'refactor_suggestion' or 'potential_issue' (WITH suggestions)
+9. Prompt engineering improvements, system architecture changes, and documentation updates are typically 'other' or 'verification' (NO suggestions)
 
 IMPORTANT RULES FOR SUGGESTIONS:
-1. For comments of type 'refactor_suggestion' or 'potential_issue', you MUST provide a suggested code change.
-2. Add a 'suggestions' field containing an array with a single string.
-3. The suggestion MUST be the complete, corrected code that should replace the original code from startLine to endLine.
-4. If the issue is about removing code, provide an empty string: "suggestions": [""]
-5. If the issue is about fixing/improving code, provide the corrected version: "suggestions": ["const correctedCode = ...;"]
-6. The suggestion must be syntactically valid and ready to use as a direct replacement.
-7. Do NOT include explanatory text in the suggestion - only the actual code.
-8. CRITICAL: When providing multiple suggestions, order them from BOTTOM to TOP of the file (highest line numbers first). This prevents line number conflicts when suggestions are applied sequentially.
+1. ONLY comments of type 'refactor_suggestion' or 'potential_issue' should have code suggestions.
+2. NEVER provide suggestions for 'verification', 'other', or 'nitpick' comments.
+3. For 'refactor_suggestion' or 'potential_issue' comments, you MUST provide BOTH 'suggestions' AND 'codegenInstructions' fields.
+4. Add a 'suggestions' field containing an array with a single string.
+5. Add a 'codegenInstructions' field with clear instructions for an LLM to implement the fix.
+6. The suggestion MUST be the complete, corrected code that should replace the original code from startLine to endLine.
+7. If the issue is about removing code, provide an empty string: "suggestions": [""]
+8. If the issue is about fixing/improving code, provide the corrected version: "suggestions": ["const correctedCode = ...;"]
+9. The suggestion must be syntactically valid and ready to use as a direct replacement.
+10. Do NOT include explanatory text in the suggestion - only the actual code.
+11. CRITICAL: When providing multiple suggestions, order them from BOTTOM to TOP of the file (highest line numbers first). This prevents line number conflicts when suggestions are applied sequentially.
 
-WHEN TO USE 'codegenInstructions':
-- If a refactor is too complex for a simple suggestion (e.g., requires creating a new file, modifying multiple functions, or significant architectural changes), do NOT provide a 'suggestions' array.
-- Instead, provide a 'codegenInstructions' field with a clear, high-level instruction for an AI agent. For example: "codegenInstructions": "Refactor the 'processData' function to use the new 'ApiService' and handle its asynchronous responses.".
+MANDATORY 'codegenInstructions' FIELD:
+- ALWAYS include 'codegenInstructions' when providing 'suggestions' for 'refactor_suggestion' or 'potential_issue' comments
+- The 'codegenInstructions' field should contain clear, step-by-step instructions for an LLM to implement the fix
+- Write instructions in imperative form, specifying exactly what needs to be done
+- Include context about why the change is needed and what the expected outcome should be
+- Instructions should be actionable and specific enough for an AI agent to follow
+
+FORMAT FOR 'codegenInstructions':
+- Start with the main action: "Fix the [issue] by [solution]"
+- Include specific steps if multiple actions are needed
+- Mention file locations, function names, or code patterns when relevant
+- Explain the expected behavior after the fix
+
+EXAMPLES OF 'codegenInstructions':
+- "Fix the null reference error by adding a null check before accessing user.profile.name"
+- "Refactor the duplicated validation logic by extracting it into a reusable validateInput function"
+- "Fix the memory leak by properly cleaning up event listeners in the component's cleanup function"
+- "Improve performance by replacing the nested loops with a Map-based lookup for O(1) access time"
 
 EXAMPLES:
 - To remove duplicate code: "suggestions": [""]

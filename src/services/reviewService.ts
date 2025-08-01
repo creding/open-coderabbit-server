@@ -284,7 +284,7 @@ export class ReviewService {
     const startTime = Date.now();
 
     try {
-      logger.info('Starting code review', {
+      logger.debug('Starting code review', {
         reviewId: this.reviewId,
         clientId: this.clientId,
         fileCount: files.length,
@@ -343,7 +343,7 @@ export class ReviewService {
       const totalDuration = Date.now() - startTime;
       monitor.completeReview(this.reviewId, allComments.length);
 
-      logger.info('Review completed successfully', {
+      logger.debug('Review completed successfully', {
         reviewId: this.reviewId,
         clientId: this.clientId,
         duration: totalDuration,

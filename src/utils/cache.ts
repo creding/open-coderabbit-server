@@ -307,7 +307,7 @@ export class ReviewCache {
     this.cache.clear();
     this.summaryCache.clear();
     this.titleCache.clear();
-    logger.info('All caches cleared');
+    logger.debug('All caches cleared');
   }
 
   getStats(): { review: CacheStats; summary: CacheStats; title: CacheStats } {
