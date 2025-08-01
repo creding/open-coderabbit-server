@@ -76,7 +76,7 @@ describe('RateLimiter', () => {
     vi.advanceTimersByTime(60001); // Wait for cleanup interval + window
     // @ts-expect-error - access private method for testing
     limiter.cleanup();
-    // @ts-expect-error
+    // @ts-expect-error - accessing private property for testing
     expect(limiter.clients.has('client-1')).toBe(false);
   });
 });
