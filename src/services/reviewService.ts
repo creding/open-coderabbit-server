@@ -306,19 +306,37 @@ export class ReviewService {
 
       this.sendStatusUpdate('reviewing');
 
-      // Perform code review with monitoring
+      // Perform streaming code review with monitoring
       const reviewStartTime = Date.now();
-      const allComments = await this.aiProvider.performCodeReview(files);
+      const allComments: ReviewComment[] = [];
+
+      try {
+        for await (const comment of this.aiProvider.streamCodeReview(files)) {
+          allComments.push(comment);
+          // Process and send each comment immediately as it arrives
+          await this.processAndSendComments([comment], files);
+        }
+      } catch (error) {
+        // Fallback to synchronous method if streaming fails
+        logger.warn('Streaming failed, falling back to synchronous review', {
+          reviewId: this.reviewId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        const syncComments = await this.aiProvider.performCodeReview(files);
+        allComments.push(...syncComments);
+        await this.processAndSendComments(syncComments, files);
+      }
+
       logger.debug('Code review completed', {
         reviewId: this.reviewId,
         commentCount: allComments.length,
         duration: Date.now() - reviewStartTime,
       });
 
+      // Sort all comments for categorization and summary
       allComments.sort(
         (a: ReviewComment, b: ReviewComment) => b.startLine - a.startLine
       );
-      await this.processAndSendComments(allComments, files);
       await this.categorizeAndSendDetails(allComments, files);
       await this.generateAndSendSummary(allComments);
 

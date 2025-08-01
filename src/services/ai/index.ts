@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateObject, LanguageModel } from 'ai';
+import { generateObject, streamObject, LanguageModel } from 'ai';
 import { z } from 'zod';
 import { env } from '../../constants';
 import { ReviewComment, File } from '../../types';
@@ -145,6 +145,32 @@ class UnifiedAiProvider implements AiProvider {
       'Failed to perform code review'
     );
     return object.comments;
+  }
+
+  async *streamCodeReview(
+    files: File[]
+  ): AsyncGenerator<ReviewComment, void, unknown> {
+    const prompt = performCodeReviewPrompt(files);
+
+    try {
+      const { elementStream } = streamObject({
+        model: this.model,
+        output: 'array',
+        schema: reviewCommentSchema,
+        prompt: prompt,
+      });
+
+      for await (const comment of elementStream) {
+        yield comment;
+      }
+    } catch (error) {
+      throw new RetryableError(
+        `Failed to stream code review: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        isRetryableAIError(error)
+      );
+    }
   }
 }
 
