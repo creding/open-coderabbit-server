@@ -1,4 +1,4 @@
-# CodeRabbit Server
+# Open CodeRabbit Server
 
 A powerful TypeScript backend server that provides AI-powered code review services for VSCode extensions. CodeRabbit analyzes code changes, generates intelligent comments, and provides comprehensive review summaries using advanced AI models.
 
@@ -31,7 +31,7 @@ A powerful TypeScript backend server that provides AI-powered code review servic
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd coderabbit/server
+   cd open-coderabbit-server
    ```
 
 2. **Install dependencies**
