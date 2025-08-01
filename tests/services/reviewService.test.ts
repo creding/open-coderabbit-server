@@ -1,35 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ReviewService } from '../../src/services/reviewService';
 import { EventEmitter } from 'events';
+import { ReviewService } from '../../src/services/reviewService';
 import { getAiProvider } from '../../src/services/ai/index';
-import { logger } from '../../src/utils/logger';
-import { monitor } from '../../src/utils/monitor';
-import { serverEvent, reviewStatus } from '../../src/types';
+import { File, ReviewComment, serverEvent, reviewStatus } from '../../src/types';
 
-vi.mock('../../services/ai/index', () => ({
-  getAiProvider: vi.fn(),
-}));
+vi.mock('../../src/services/ai/index');
 
-vi.mock('../../utils/logger', () => ({
-  logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
-vi.mock('../../utils/monitor', () => ({
-  monitor: {
-    startReview: vi.fn(),
-    completeReview: vi.fn(),
-    failReview: vi.fn(),
-  },
-}));
-
-describe('ReviewService', () => {
+describe('ReviewService - Core Review Functionality', () => {
   let reviewService: ReviewService;
   let eventEmitter: EventEmitter;
-  let mockAiProvider;
+  let mockAiProvider: any;
+
+  const reviewId = 'test-review';
+  const clientId = 'test-client';
 
   beforeEach(() => {
     eventEmitter = new EventEmitter();
@@ -38,50 +21,57 @@ describe('ReviewService', () => {
       generatePrObjective: vi.fn().mockResolvedValue('Test Objective'),
       generateWalkThrough: vi.fn().mockResolvedValue('Test Walkthrough'),
       performCodeReview: vi.fn().mockResolvedValue([]),
-      generateReviewSummary: vi
-        .fn()
-        .mockResolvedValue({ summary: 's', shortSummary: 'ss' }),
+      generateReviewSummary: vi.fn().mockResolvedValue({ shortSummary: 'Short', summary: 'Long' }),
     };
-    vi.mocked(getAiProvider).mockReturnValue(mockAiProvider);
-    reviewService = new ReviewService(eventEmitter, 'review1', 'client1');
+    (getAiProvider as vi.Mock).mockReturnValue(mockAiProvider);
+    reviewService = new ReviewService(eventEmitter, reviewId, clientId);
   });
 
-  it('should run a review successfully', async () => {
+  const mockFiles: File[] = [
+    {
+      filename: 'file1.ts',
+      fileContent: 'const a = 1;',
+      diff: 'diff1',
+      newFile: false,
+      renamedFile: false,
+      deletedFile: false,
+    },
+  ];
+
+  it('should run a full review successfully', async () => {
     const emitSpy = vi.spyOn(eventEmitter, 'emit');
-    await reviewService.run([]);
+    const mockComments: ReviewComment[] = [
+      { filename: 'file1.ts', startLine: 1, endLine: 1, comment: 'A comment', type: 'suggestion' },
+    ];
+    mockAiProvider.performCodeReview.mockResolvedValue(mockComments);
 
-    expect(mockAiProvider.generateReviewTitle).toHaveBeenCalled();
-    expect(mockAiProvider.generatePrObjective).toHaveBeenCalled();
-    expect(mockAiProvider.generateWalkThrough).toHaveBeenCalled();
-    expect(mockAiProvider.performCodeReview).toHaveBeenCalled();
-    expect(mockAiProvider.generateReviewSummary).toHaveBeenCalled();
+    await reviewService.run(mockFiles);
 
-    expect(emitSpy).toHaveBeenCalledWith(
-      'reviewEvent',
-      expect.objectContaining({
-        type: serverEvent.REVIEW_COMPLETED,
-        payload: { status: reviewStatus.COMPLETED },
-      })
-    );
+    expect(mockAiProvider.generateReviewTitle).toHaveBeenCalledWith(mockFiles);
+    expect(mockAiProvider.performCodeReview).toHaveBeenCalledWith(mockFiles);
+    expect(mockAiProvider.generateReviewSummary).toHaveBeenCalledWith(mockComments);
+
+    // Check for key events
+    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.PR_TITLE }));
+    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.REVIEW_COMMENT }));
+    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.SUMMARY_COMMENT }));
+    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ 
+      type: serverEvent.REVIEW_COMPLETED,
+      payload: { status: reviewStatus.COMPLETED }
+    }));
   });
 
-  it('should handle errors during a review', async () => {
+  it('should handle an error during the review process', async () => {
     const emitSpy = vi.spyOn(eventEmitter, 'emit');
-    const error = new Error('AI Error');
+    const error = new Error('AI Provider Failed');
     mockAiProvider.performCodeReview.mockRejectedValue(error);
 
-    await reviewService.run([]);
+    await reviewService.run(mockFiles);
 
-    expect(emitSpy).toHaveBeenCalledWith(
-      'reviewEvent',
-      expect.objectContaining({ type: serverEvent.ERROR })
-    );
-    expect(emitSpy).toHaveBeenCalledWith(
-      'reviewEvent',
-      expect.objectContaining({
-        type: serverEvent.REVIEW_COMPLETED,
-        payload: { status: reviewStatus.FAILED },
-      })
-    );
+    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.ERROR }));
+    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ 
+      type: serverEvent.REVIEW_COMPLETED,
+      payload: { status: reviewStatus.FAILED }
+    }));
   });
 });
