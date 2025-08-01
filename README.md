@@ -2,14 +2,12 @@
 
 A powerful TypeScript backend server that provides AI-powered code review services for VSCode extensions. CodeRabbit analyzes code changes, generates intelligent comments, and provides comprehensive review summaries using advanced AI models.
 
-
-
 ## 🚀 Features
 
 - **AI-Powered Code Reviews**: Intelligent analysis using Google Gemini, OpenAI GPT models
 - **Real-time Communication**: WebSocket-based real-time updates via tRPC
 - **Multi-Provider AI Support**: Flexible AI provider configuration (Google, OpenAI )
-- **Comprehensive Analysis**: 
+- **Comprehensive Analysis**:
   - Code review comments with categorization (issues, suggestions, nitpicks)
   - PR title generation
   - Review summaries and objectives
@@ -24,56 +22,60 @@ A powerful TypeScript backend server that provides AI-powered code review servic
 
 ## 📋 Prerequisites
 
-- **Node.js** 20+ 
+- **Node.js** 20+
 - **npm** or **yarn**
 - **AI Provider API Key** (Google Generative AI, OpenAI)
 
 ## 🛠️ Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd open-coderabbit-server
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment variables**
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Edit `.env` with your configuration:
+
    ```env
    # Server Configuration
    PORT=5353
    HOST=localhost
    SSL=false
-   
+
    # AI Provider Configuration
    AI_PROVIDER=google  # google, openai
    GOOGLE_GENERATIVE_AI_API_KEY=your_google_api_key
    OPENAI_API_KEY=your_openai_api_key
-   
+
    # AI Models
    GOOGLE_AI_MODEL=models/gemini-2.5-flash
    OPENAI_AI_MODEL=gpt-4o-mini
-   
+
    # File Validation
    MAX_FILE_SIZE=10485760          # 10MB per file
    MAX_FILES_PER_REVIEW=50         # Max files per review
    MAX_TOTAL_SIZE=52428800         # 50MB total
-   
+
    # Rate Limiting
    RATE_LIMIT_REQUESTS=10          # Requests per window
    RATE_LIMIT_WINDOW_MS=60000      # 1 minute window
-   
+
    # Performance
    REVIEW_TIMEOUT_MS=300000        # 5 minute timeout
-   
+
    # Logging
    LOG_LEVEL=info                  # error, warn, info, debug
    LOG_TO_FILE=false
@@ -82,11 +84,13 @@ A powerful TypeScript backend server that provides AI-powered code review servic
 ## 🚀 Usage
 
 ### Development Mode
+
 ```bash
 npm run dev
 ```
 
 ### Production Build
+
 ```bash
 npm run build
 npm start
@@ -111,10 +115,13 @@ To use your self-hosted Open CodeRabbit server with the CodeRabbit VSCode extens
 3. **Click "Self hosting CodeRabbit?"** button (located below the "Use CodeRabbit for free" button)
 
 4. **Enter your server URL** when prompted:
+
    ```
    http://localhost:5353
    ```
+
    Or if running on a different host:
+
    ```
    http://your-server-ip:5353
    ```
@@ -132,6 +139,7 @@ To use your self-hosted Open CodeRabbit server with the CodeRabbit VSCode extens
 ### Verification
 
 Once connected, you should see:
+
 - ✅ Connection status indicator in the extension
 - Access to code review features in VSCode
 - Real-time AI-powered code analysis
@@ -139,6 +147,7 @@ Once connected, you should see:
 ### Troubleshooting Connection Issues
 
 **Extension can't connect to server:**
+
 ```bash
 # Check if server is running
 docker ps
@@ -147,11 +156,13 @@ curl http://localhost:5353/health
 ```
 
 **WebSocket connection failed:**
+
 - Ensure firewall allows connections on port 5353
 - Check that server is binding to `0.0.0.0` (not just `localhost`)
 - Verify no proxy is blocking WebSocket connections
 
 **Server URL not reachable:**
+
 - Test server accessibility: `curl http://your-server:5353/health`
 - Check network connectivity between VSCode and server
 - Ensure Docker port mapping is correct: `0.0.0.0:5353->5353/tcp`
@@ -163,6 +174,7 @@ The Open CodeRabbit server is fully containerized and production-ready with Dock
 ### Quick Start
 
 #### Using the Docker Management Script (Recommended)
+
 ```bash
 # Start development environment with hot reload
 ./scripts/docker.sh dev
@@ -183,16 +195,19 @@ The Open CodeRabbit server is fully containerized and production-ready with Dock
 #### Manual Docker Commands
 
 **Build the image:**
+
 ```bash
 docker build -t open-coderabbit-server .
 ```
 
 **Run production container:**
+
 ```bash
 docker run -d --name open-coderabbit -p 5353:5353 --env-file .env open-coderabbit-server
 ```
 
 **Using Docker Compose:**
+
 ```bash
 # Production
 docker-compose up -d
@@ -204,11 +219,13 @@ docker-compose -f docker-compose.dev.yml up -d
 ### Docker Configuration
 
 #### Multi-Stage Dockerfile
+
 - **Builder stage**: Compiles TypeScript and installs all dependencies
 - **Production stage**: Minimal runtime image with only production dependencies
 - **Base image**: `node:20-alpine` for security and size optimization
 
 #### Environment Variables
+
 The container uses the same environment variables as the local setup. Ensure your `.env` file is properly configured:
 
 ```bash
@@ -218,7 +235,9 @@ cp .env.example .env
 ```
 
 #### Health Checks
+
 Both Docker Compose configurations include health checks:
+
 - **Endpoint**: `GET /health`
 - **Interval**: 30 seconds
 - **Timeout**: 10 seconds
@@ -226,21 +245,23 @@ Both Docker Compose configurations include health checks:
 - **Start period**: 40 seconds
 
 #### Logging
+
 Production containers are configured with log rotation:
+
 - **Max file size**: 10MB
 - **Max files**: 3
 - **Format**: JSON
 
 ### Development vs Production
 
-| Feature | Development | Production |
-|---------|-------------|------------|
-| **File** | `docker-compose.dev.yml` | `docker-compose.yml` |
-| **Hot Reload** | ✅ Volume mounted | ❌ Built-in |
-| **Build Target** | `builder` stage | Final stage |
-| **Dependencies** | All (dev + prod) | Production only |
-| **Restart Policy** | `unless-stopped` | `unless-stopped` |
-| **Health Checks** | ✅ Enabled | ✅ Enabled |
+| Feature            | Development              | Production           |
+| ------------------ | ------------------------ | -------------------- |
+| **File**           | `docker-compose.dev.yml` | `docker-compose.yml` |
+| **Hot Reload**     | ✅ Volume mounted        | ❌ Built-in          |
+| **Build Target**   | `builder` stage          | Final stage          |
+| **Dependencies**   | All (dev + prod)         | Production only      |
+| **Restart Policy** | `unless-stopped`         | `unless-stopped`     |
+| **Health Checks**  | ✅ Enabled               | ✅ Enabled           |
 
 ### Docker Management Script
 
@@ -265,6 +286,7 @@ Commands:
 ### Troubleshooting
 
 **Container won't start:**
+
 ```bash
 # Check logs
 ./scripts/docker.sh logs
@@ -274,6 +296,7 @@ docker-compose logs -f
 ```
 
 **Health check failing:**
+
 ```bash
 # Test health endpoint
 curl http://localhost:5353/health
@@ -283,6 +306,7 @@ docker ps
 ```
 
 **Port already in use:**
+
 ```bash
 # Find process using port 5353
 lsof -i :5353
@@ -295,21 +319,27 @@ ports:
 ## 📡 API Endpoints
 
 ### Health Check
+
 ```
 GET /health
 ```
+
 Returns server health status and configuration.
 
 ### Metrics
+
 ```
 GET /metrics
 ```
+
 Returns performance metrics and monitoring data.
 
 ### tRPC WebSocket
+
 ```
 WS /trpc
 ```
+
 Real-time communication for code review requests and updates.
 
 ## 🏗️ Architecture
@@ -359,6 +389,7 @@ npm run test:coverage
 ```
 
 ### Test Structure
+
 - **`tests/services/`** - Service layer tests
 - **`tests/utils/`** - Utility function tests
 - **`tests/fixtures/`** - Shared test data
@@ -367,6 +398,7 @@ npm run test:coverage
 ## 🔧 Development
 
 ### Code Quality
+
 ```bash
 # Lint code
 npm run lint
@@ -379,6 +411,7 @@ npx tsc --noEmit
 ```
 
 ### Project Structure
+
 ```
 src/
 ├── constants.ts          # Environment configuration
@@ -401,20 +434,20 @@ tests/
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `5353` |
-| `HOST` | Server host | `localhost` |
-| `SSL` | Enable SSL | `false` |
-| `AI_PROVIDER` | AI provider (google/openai) | `google` |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI API key | Required |
-| `OPENAI_API_KEY` | OpenAI API key | Optional |
-| `MAX_FILE_SIZE` | Max file size in bytes | `10485760` (10MB) |
-| `MAX_FILES_PER_REVIEW` | Max files per review | `50` |
-| `RATE_LIMIT_REQUESTS` | Rate limit requests | `10` |
-| `RATE_LIMIT_WINDOW_MS` | Rate limit window | `60000` (1 min) |
-| `REVIEW_TIMEOUT_MS` | Review timeout | `300000` (5 min) |
-| `LOG_LEVEL` | Logging level | `info` |
+| Variable                       | Description                 | Default           |
+| ------------------------------ | --------------------------- | ----------------- |
+| `PORT`                         | Server port                 | `5353`            |
+| `HOST`                         | Server host                 | `localhost`       |
+| `SSL`                          | Enable SSL                  | `false`           |
+| `AI_PROVIDER`                  | AI provider (google/openai) | `google`          |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI API key           | Required          |
+| `OPENAI_API_KEY`               | OpenAI API key              | Optional          |
+| `MAX_FILE_SIZE`                | Max file size in bytes      | `10485760` (10MB) |
+| `MAX_FILES_PER_REVIEW`         | Max files per review        | `50`              |
+| `RATE_LIMIT_REQUESTS`          | Rate limit requests         | `10`              |
+| `RATE_LIMIT_WINDOW_MS`         | Rate limit window           | `60000` (1 min)   |
+| `REVIEW_TIMEOUT_MS`            | Review timeout              | `300000` (5 min)  |
+| `LOG_LEVEL`                    | Logging level               | `info`            |
 
 ### Docker Deployment
 
@@ -426,6 +459,7 @@ The included `Dockerfile` uses multi-stage builds for optimized production image
 ### Health Monitoring
 
 The server provides built-in health checks and metrics:
+
 - Health endpoint returns server status and configuration
 - Metrics endpoint provides performance data
 - Structured logging with configurable levels
