@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  server:
+    build: 
+      context: .
+      target: builder  # Use the builder stage for development
+    ports:
+      - "5353:5353"
+    env_file:
+      - .env
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./package.json:/usr/src/app/package.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+    restart: unless-stopped
+    working_dir: /usr/src/app
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5353/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
