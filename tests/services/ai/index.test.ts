@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateObject } from 'ai';
+import { generateObject, streamObject } from 'ai';
 import { getAiProvider } from '../../../src/services/ai/index';
 import { AiProvider } from '../../../src/services/ai/types';
 import { File, ReviewComment } from '../../../src/types';
@@ -15,6 +15,7 @@ describe('UnifiedAiProvider', () => {
 
   beforeEach(() => {
     vi.mocked(generateObject).mockClear();
+    vi.mocked(streamObject).mockClear();
     aiProvider = getAiProvider();
   });
 
@@ -33,6 +34,8 @@ describe('UnifiedAiProvider', () => {
     const expectedTitle = 'Test Title';
     vi.mocked(generateObject).mockResolvedValue({
       object: { title: expectedTitle },
+      finishReason: 'stop',
+      usage: { promptTokens: 10, completionTokens: 5 },
     } as any);
     const title = await aiProvider.generateReviewTitle(mockFiles);
     expect(title).toBe(expectedTitle);
@@ -59,6 +62,8 @@ describe('UnifiedAiProvider', () => {
     };
     vi.mocked(generateObject).mockResolvedValue({
       object: expectedSummary,
+      finishReason: 'stop',
+      usage: { promptTokens: 10, completionTokens: 5 },
     } as any);
     const summary = await aiProvider.generateReviewSummary(mockComments);
     expect(summary).toEqual(expectedSummary);
@@ -87,6 +92,8 @@ describe('UnifiedAiProvider', () => {
     ];
     vi.mocked(generateObject).mockResolvedValue({
       object: { comments: expectedComments },
+      finishReason: 'stop',
+      usage: { promptTokens: 10, completionTokens: 5 },
     } as any);
     const comments = await aiProvider.performCodeReview(mockFiles);
     expect(comments).toEqual(expectedComments);
@@ -100,10 +107,90 @@ describe('UnifiedAiProvider', () => {
   it('should retry on failure', async () => {
     vi.mocked(generateObject)
       .mockRejectedValueOnce(new Error('network error'))
-      .mockResolvedValue({ object: { title: 'Success' } } as any);
+      .mockResolvedValue({
+        object: { title: 'Success' },
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 5 },
+      } as any);
 
     const title = await aiProvider.generateReviewTitle(mockFiles);
     expect(title).toBe('Success');
     expect(generateObject).toHaveBeenCalledTimes(2);
+  });
+
+  it('should generate a PR objective', async () => {
+    const expectedObjective = 'Test Objective';
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { objective: expectedObjective },
+      finishReason: 'stop',
+      usage: { promptTokens: 10, completionTokens: 5 },
+    } as any);
+    const objective = await aiProvider.generatePrObjective(mockFiles);
+    expect(objective).toBe(expectedObjective);
+    expect(generateObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: prompts.generatePrObjectivePrompt(mockFiles),
+      })
+    );
+  });
+
+  it('should generate a walkthrough', async () => {
+    const expectedWalkThrough = 'Test Walkthrough';
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { walkThrough: expectedWalkThrough },
+      finishReason: 'stop',
+      usage: { promptTokens: 10, completionTokens: 5 },
+    } as any);
+    const walkThrough = await aiProvider.generateWalkThrough(mockFiles);
+    expect(walkThrough).toBe(expectedWalkThrough);
+    expect(generateObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: prompts.generateWalkThroughPrompt(mockFiles),
+      })
+    );
+  });
+
+  it('should stream code review comments', async () => {
+    const mockComments: ReviewComment[] = [
+      {
+        filename: 'file1.ts',
+        startLine: 1,
+        endLine: 1,
+        comment: 'First comment',
+        type: 'refactor_suggestion',
+      },
+      {
+        filename: 'file1.ts',
+        startLine: 2,
+        endLine: 2,
+        comment: 'Second comment',
+        type: 'potential_issue',
+      },
+    ];
+
+    // Mock the streamObject function to return an async iterator
+    const mockElementStream = (async function* () {
+      for (const comment of mockComments) {
+        yield comment;
+      }
+    })();
+
+    vi.mocked(streamObject).mockReturnValue({
+      elementStream: mockElementStream,
+      warnings: [],
+    } as any);
+
+    const comments: ReviewComment[] = [];
+    for await (const comment of aiProvider.streamCodeReview(mockFiles)) {
+      comments.push(comment);
+    }
+
+    expect(comments).toEqual(mockComments);
+    expect(streamObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: prompts.performCodeReviewPrompt(mockFiles),
+        system: prompts.codeReviewSystemPrompt,
+      })
+    );
   });
 });
