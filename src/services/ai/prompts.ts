@@ -77,10 +77,27 @@ export const performCodeReviewPrompt = (files: File[]): string => {
     - 'verification': A comment to confirm that a piece of code is correct and well-implemented, especially if it's complex. There should be no code suggestion when using this type.
     - 'other': Any other type of comment.
 
+    QUALITY STANDARDS - ONLY PROVIDE COMMENTS THAT:
+    1. Identify actual bugs, security issues, or logic errors
+    2. Suggest meaningful performance improvements
+    3. Point out violations of established best practices
+    4. Highlight potential maintainability issues
+    5. Address code that could be confusing to other developers
+    6. Identify missing error handling or edge cases
+
+    DO NOT COMMENT ON:
+    - Configuration files unless there are actual errors or security issues
+    - Formatting that follows consistent patterns
+    - Trivial naming preferences
+    - Standard language features being used correctly
+    - Minor stylistic choices that don't impact readability
+    - Changes that are clearly intentional and follow project conventions
+
     IMPORTANT RULES FOR COMMENTS:
     1. Your comments should provide new insights, not just summarize the diff. The user already knows what they changed.
     2. Focus on improvements, potential bugs, and best practices.
     3. A 'refactor_suggestion' should NOT change the application's logic or behavior. If a change alters functionality, it is not a refactor. Classify it as 'potential_issue' if it's a bug, or 'other' if it's a functional change.
+    4. Before adding any comment, ask yourself: "Would this comment help the developer write better, safer, or more maintainable code?" If not, don't include it.
 
     IMPORTANT RULES FOR SUGGESTIONS:
     1. For comments of type 'refactor_suggestion' or 'potential_issue', you MUST provide a suggested code change.
