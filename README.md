@@ -2,11 +2,13 @@
 
 A powerful TypeScript backend server that provides AI-powered code review services for VSCode extensions. CodeRabbit analyzes code changes, generates intelligent comments, and provides comprehensive review summaries using advanced AI models.
 
+
+
 ## 🚀 Features
 
-- **AI-Powered Code Reviews**: Intelligent analysis using Google Gemini, OpenAI GPT, or OpenRouter models
+- **AI-Powered Code Reviews**: Intelligent analysis using Google Gemini, OpenAI GPT models
 - **Real-time Communication**: WebSocket-based real-time updates via tRPC
-- **Multi-Provider AI Support**: Flexible AI provider configuration (Google, OpenAI, OpenRouter)
+- **Multi-Provider AI Support**: Flexible AI provider configuration (Google, OpenAI )
 - **Comprehensive Analysis**: 
   - Code review comments with categorization (issues, suggestions, nitpicks)
   - PR title generation
@@ -24,7 +26,7 @@ A powerful TypeScript backend server that provides AI-powered code review servic
 
 - **Node.js** 20+ 
 - **npm** or **yarn**
-- **AI Provider API Key** (Google Generative AI, OpenAI, or OpenRouter)
+- **AI Provider API Key** (Google Generative AI, OpenAI)
 
 ## 🛠️ Installation
 
@@ -52,14 +54,13 @@ A powerful TypeScript backend server that provides AI-powered code review servic
    SSL=false
    
    # AI Provider Configuration
-   AI_PROVIDER=google  # google, openai, or openrouter
+   AI_PROVIDER=google  # google, openai
    GOOGLE_GENERATIVE_AI_API_KEY=your_google_api_key
    OPENAI_API_KEY=your_openai_api_key
-   OPENROUTER_API_KEY=your_openrouter_api_key
    
    # AI Models
-   GOOGLE_AI_MODEL=models/gemini-1.5-flash
-   OPENAI_AI_MODEL=gpt-4o-2024-08-06
+   GOOGLE_AI_MODEL=models/gemini-2.5-flash
+   OPENAI_AI_MODEL=gpt-4o-mini
    
    # File Validation
    MAX_FILE_SIZE=10485760          # 10MB per file
@@ -91,9 +92,73 @@ npm run build
 npm start
 ```
 
+## 🔌 Connecting VSCode Extension
+
+To use your self-hosted Open CodeRabbit server with the CodeRabbit VSCode extension, follow these steps:
+
+### Prerequisites
+
+1. **CodeRabbit VSCode Extension**: Install the [CodeRabbit extension](https://marketplace.visualstudio.com/items?itemName=coderabbitai.coderabbit) (version 0.12.1 or higher)
+2. **Running Server**: Ensure your Open CodeRabbit server is running and accessible
+3. **Network Access**: Make sure the server URL is reachable and WebSocket connections are allowed
+
+### Connection Steps
+
+1. **Open VSCode** and navigate to the CodeRabbit extension
+
+2. **Logout** if previously logged in to CodeRabbit cloud service
+
+3. **Click "Self hosting CodeRabbit?"** button (located below the "Use CodeRabbit for free" button)
+
+4. **Enter your server URL** when prompted:
+   ```
+   http://localhost:5353
+   ```
+   Or if running on a different host:
+   ```
+   http://your-server-ip:5353
+   ```
+
+5. **Select your Git provider**:
+   - GitHub
+   - GitHub Enterprise
+   - GitLab
+   - Self-Hosted GitLab
+
+6. **Provide authentication** (if using GitHub/GitHub Enterprise):
+   - Enter your [GitHub Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
+   - Required permissions: `repo`, `read:user`
+
+### Verification
+
+Once connected, you should see:
+- ✅ Connection status indicator in the extension
+- Access to code review features in VSCode
+- Real-time AI-powered code analysis
+
+### Troubleshooting Connection Issues
+
+**Extension can't connect to server:**
+```bash
+# Check if server is running
+docker ps
+# or
+curl http://localhost:5353/health
+```
+
+**WebSocket connection failed:**
+- Ensure firewall allows connections on port 5353
+- Check that server is binding to `0.0.0.0` (not just `localhost`)
+- Verify no proxy is blocking WebSocket connections
+
+**Server URL not reachable:**
+- Test server accessibility: `curl http://your-server:5353/health`
+- Check network connectivity between VSCode and server
+- Ensure Docker port mapping is correct: `0.0.0.0:5353->5353/tcp`
+
 ### Using Docker
 
-The CodeRabbit server is fully containerized and production-ready with Docker support.
+The Open CodeRabbit server is fully containerized and production-ready with Docker support.
 
 ### Quick Start
 
@@ -119,12 +184,12 @@ The CodeRabbit server is fully containerized and production-ready with Docker su
 
 **Build the image:**
 ```bash
-docker build -t coderabbit-server .
+docker build -t open-coderabbit-server .
 ```
 
 **Run production container:**
 ```bash
-docker run -d --name coderabbit -p 5353:5353 --env-file .env coderabbit-server
+docker run -d --name open-coderabbit -p 5353:5353 --env-file .env open-coderabbit-server
 ```
 
 **Using Docker Compose:**
@@ -341,10 +406,9 @@ tests/
 | `PORT` | Server port | `5353` |
 | `HOST` | Server host | `localhost` |
 | `SSL` | Enable SSL | `false` |
-| `AI_PROVIDER` | AI provider (google/openai/openrouter) | `google` |
+| `AI_PROVIDER` | AI provider (google/openai) | `google` |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI API key | Required |
 | `OPENAI_API_KEY` | OpenAI API key | Optional |
-| `OPENROUTER_API_KEY` | OpenRouter API key | Optional |
 | `MAX_FILE_SIZE` | Max file size in bytes | `10485760` (10MB) |
 | `MAX_FILES_PER_REVIEW` | Max files per review | `50` |
 | `RATE_LIMIT_REQUESTS` | Rate limit requests | `10` |
