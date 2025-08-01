@@ -74,7 +74,7 @@ export const performCodeReviewPrompt = (files: File[]): string => {
     - 'potential_issue': A bug or an error that could cause problems.
     - 'refactor_suggestion': A suggestion to improve the code's structure, readability, or performance without changing its external behavior. This is for making good code better. DO NOT just describe the change that was made. The comment should explain WHY the refactor is an improvement.
     - 'nitpick': A minor stylistic preference or a trivial issue.
-    - 'verification': A comment to confirm that a piece of code is correct and well-implemented, especially if it's complex.
+    - 'verification': A comment to confirm that a piece of code is correct and well-implemented, especially if it's complex. There should be no code suggestion when using this type.
     - 'other': Any other type of comment.
 
     IMPORTANT RULES FOR COMMENTS:
