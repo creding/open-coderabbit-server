@@ -10,6 +10,7 @@ import {
   ServerEvent,
   EventPayload,
   ReviewStatus,
+  ProductSettingsPayload,
 } from '../types';
 import * as diff from 'diff';
 import { logger } from '../utils/logger';
@@ -46,6 +47,15 @@ export class ReviewService {
 
   private sendStatusUpdate(status: 'summarizing' | 'reviewing') {
     this.emitEvent(serverEvent.REVIEW_STATUS, { reviewStatus: status });
+  }
+
+  private sendProductSettings() {
+    // For now, return true for isPaidUser as requested
+    // TODO: Implement actual user subscription status lookup
+    const payload: ProductSettingsPayload = {
+      isPaidUser: true,
+    };
+    this.emitEvent(serverEvent.PRODUCT_SETTINGS, payload);
   }
 
   private async generatePrDetails(files: File[]) {
@@ -294,6 +304,10 @@ export class ReviewService {
       this.emitEvent(serverEvent.STATE_UPDATE, {
         status: reviewStatus.IN_PROGRESS,
       });
+
+      // Send product settings early in the review process
+      this.sendProductSettings();
+
       this.sendStatusUpdate('summarizing');
 
       // Generate PR details with monitoring
