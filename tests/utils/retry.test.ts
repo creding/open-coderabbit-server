@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { retryWithBackoff, RetryableError, isRetryableAIError } from '../../src/utils/retry';
+import {
+  retryWithBackoff,
+  RetryableError,
+  isRetryableAIError,
+} from '../../src/utils/retry';
 
 describe('retryWithBackoff', () => {
   it('should return the result on the first successful attempt', async () => {
@@ -10,18 +14,23 @@ describe('retryWithBackoff', () => {
   });
 
   it('should retry on failure and succeed on a subsequent attempt', async () => {
-    const operation = vi.fn()
+    const operation = vi
+      .fn()
       .mockRejectedValueOnce(new Error('failure'))
       .mockResolvedValue('success');
-    
+
     const result = await retryWithBackoff(operation, { baseDelayMs: 10 });
     expect(result).toBe('success');
     expect(operation).toHaveBeenCalledTimes(2);
   });
 
   it('should throw the last error after exhausting all retries', async () => {
-    const operation = vi.fn().mockRejectedValue(new Error('persistent failure'));
-    await expect(retryWithBackoff(operation, { maxRetries: 2, baseDelayMs: 10 })).rejects.toThrow('persistent failure');
+    const operation = vi
+      .fn()
+      .mockRejectedValue(new Error('persistent failure'));
+    await expect(
+      retryWithBackoff(operation, { maxRetries: 2, baseDelayMs: 10 })
+    ).rejects.toThrow('persistent failure');
     expect(operation).toHaveBeenCalledTimes(3);
   });
 
@@ -33,13 +42,16 @@ describe('retryWithBackoff', () => {
   });
 
   it('should use the custom retryCondition', async () => {
-    const operation = vi.fn()
+    const operation = vi
+      .fn()
       .mockRejectedValueOnce(new Error('retry'))
       .mockRejectedValueOnce(new Error('dont-retry'));
-    
+
     const retryCondition = (e: any) => e.message === 'retry';
 
-    await expect(retryWithBackoff(operation, { retryCondition, baseDelayMs: 10 })).rejects.toThrow('dont-retry');
+    await expect(
+      retryWithBackoff(operation, { retryCondition, baseDelayMs: 10 })
+    ).rejects.toThrow('dont-retry');
     expect(operation).toHaveBeenCalledTimes(2);
   });
 });

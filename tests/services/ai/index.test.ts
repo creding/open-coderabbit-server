@@ -19,28 +19,54 @@ describe('UnifiedAiProvider', () => {
   });
 
   const mockFiles: File[] = [
-    { filename: 'file1.ts', fileContent: 'content', diff: 'diff', newFile: false, deletedFile: false, lines: [] },
+    {
+      filename: 'file1.ts',
+      fileContent: 'content',
+      diff: 'diff',
+      newFile: false,
+      renamedFile: false,
+      deletedFile: false,
+    },
   ];
 
   it('should generate a review title', async () => {
     const expectedTitle = 'Test Title';
-    vi.mocked(generateObject).mockResolvedValue({ object: { title: expectedTitle } } as any);
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { title: expectedTitle },
+    } as any);
     const title = await aiProvider.generateReviewTitle(mockFiles);
     expect(title).toBe(expectedTitle);
-    expect(generateObject).toHaveBeenCalledWith(expect.objectContaining({
-      prompt: prompts.generateReviewTitlePrompt(mockFiles),
-    }));
+    expect(generateObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: prompts.generateReviewTitlePrompt(mockFiles),
+      })
+    );
   });
 
   it('should generate a review summary', async () => {
-    const mockComments: ReviewComment[] = [{ filename: 'file1.ts', startLine: 1, endLine: 1, comment: 'comment', type: 'suggestion' }];
-    const expectedSummary = { summary: 'Long summary', shortSummary: 'Short summary' };
-    vi.mocked(generateObject).mockResolvedValue({ object: expectedSummary } as any);
+    const mockComments: ReviewComment[] = [
+      {
+        filename: 'file1.ts',
+        startLine: 1,
+        endLine: 1,
+        comment: 'comment',
+        type: 'refactor_suggestion',
+      },
+    ];
+    const expectedSummary = {
+      summary: 'Long summary',
+      shortSummary: 'Short summary',
+    };
+    vi.mocked(generateObject).mockResolvedValue({
+      object: expectedSummary,
+    } as any);
     const summary = await aiProvider.generateReviewSummary(mockComments);
     expect(summary).toEqual(expectedSummary);
-    expect(generateObject).toHaveBeenCalledWith(expect.objectContaining({
-      prompt: prompts.generateReviewSummaryPrompt(mockComments),
-    }));
+    expect(generateObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: prompts.generateReviewSummaryPrompt(mockComments),
+      })
+    );
   });
 
   it('should return a default summary when there are no comments', async () => {
@@ -51,21 +77,31 @@ describe('UnifiedAiProvider', () => {
 
   it('should perform a code review', async () => {
     const expectedComments: ReviewComment[] = [
-      { filename: 'file1.ts', startLine: 1, endLine: 1, comment: 'A comment', type: 'suggestion' },
+      {
+        filename: 'file1.ts',
+        startLine: 1,
+        endLine: 1,
+        comment: 'A comment',
+        type: 'refactor_suggestion',
+      },
     ];
-    vi.mocked(generateObject).mockResolvedValue({ object: expectedComments } as any);
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { comments: expectedComments },
+    } as any);
     const comments = await aiProvider.performCodeReview(mockFiles);
     expect(comments).toEqual(expectedComments);
-    expect(generateObject).toHaveBeenCalledWith(expect.objectContaining({
-      prompt: prompts.performCodeReviewPrompt(mockFiles),
-    }));
+    expect(generateObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: prompts.performCodeReviewPrompt(mockFiles),
+      })
+    );
   });
 
   it('should retry on failure', async () => {
     vi.mocked(generateObject)
       .mockRejectedValueOnce(new Error('network error'))
       .mockResolvedValue({ object: { title: 'Success' } } as any);
-    
+
     const title = await aiProvider.generateReviewTitle(mockFiles);
     expect(title).toBe('Success');
     expect(generateObject).toHaveBeenCalledTimes(2);

@@ -10,18 +10,33 @@ import { File, ReviewComment } from '../../../src/types';
 
 describe('AI Prompts', () => {
   const mockFiles: File[] = [
-    { filename: 'src/test.ts', fileContent: 'const a = 1;\nconst b = 2;', diff: '@@ -1,2 +1,2 @@\n-const a = 1;\n+const a = 3;', newFile: false, deletedFile: false, lines: [] },
+    {
+      filename: 'src/test.ts',
+      fileContent: 'const a = 1;\nconst b = 2;',
+      diff: '@@ -1,2 +1,2 @@\n-const a = 1;\n+const a = 3;',
+      newFile: false,
+      deletedFile: false,
+      lines: [],
+    },
   ];
 
   const mockComments: ReviewComment[] = [
-    { filename: 'src/test.ts', startLine: 1, endLine: 1, comment: 'Use let instead of const', type: 'refactor_suggestion' },
+    {
+      filename: 'src/test.ts',
+      startLine: 1,
+      endLine: 1,
+      comment: 'Use let instead of const',
+      type: 'refactor_suggestion',
+    },
   ];
 
   it('should generate a review title prompt', () => {
     const prompt = generateReviewTitlePrompt(mockFiles);
     expect(prompt).toContain('generate a concise and descriptive title');
     expect(prompt).toContain('File: src/test.ts');
-    expect(prompt).toContain('Diff: @@ -1,2 +1,2 @@\n-const a = 1;\n+const a = 3;');
+    expect(prompt).toContain(
+      'Diff: @@ -1,2 +1,2 @@\n-const a = 1;\n+const a = 3;'
+    );
   });
 
   it('should generate a review summary prompt', () => {

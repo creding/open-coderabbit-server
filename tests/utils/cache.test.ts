@@ -93,8 +93,22 @@ describe('ReviewCache', () => {
   });
 
   const mockFiles: File[] = [
-    { filename: 'file1.ts', fileContent: 'content1', diff: 'diff1', newFile: false, deletedFile: false, lines: [] },
-    { filename: 'file2.ts', fileContent: 'content2', diff: 'diff2', newFile: false, deletedFile: false, lines: [] },
+    {
+      filename: 'file1.ts',
+      fileContent: 'content1',
+      diff: 'diff1',
+      newFile: false,
+      deletedFile: false,
+      lines: [],
+    },
+    {
+      filename: 'file2.ts',
+      fileContent: 'content2',
+      diff: 'diff2',
+      newFile: false,
+      deletedFile: false,
+      lines: [],
+    },
   ];
 
   const mockComments: ReviewComment[] = [
@@ -151,32 +165,66 @@ describe('ReviewCache', () => {
 
   describe('shouldCache', () => {
     it('should return false for less than 2 files', () => {
-      const files: File[] = [{ filename: 'file1.ts', fileContent: 'content', diff: 'diff', newFile: false, deletedFile: false, lines: [] }];
+      const files: File[] = [
+        {
+          filename: 'file1.ts',
+          fileContent: 'content',
+          diff: 'diff',
+          newFile: false,
+          deletedFile: false,
+          lines: [],
+        },
+      ];
       expect(reviewCache.shouldCache(files)).toBe(false);
     });
 
     it('should return false for more than 20 files', () => {
-      const files: File[] = Array(21).fill(0).map((_, i) => ({
-        filename: `file${i}.ts`,
-        fileContent: 'content',
-        diff: 'diff',
-        newFile: false,
-        deletedFile: false,
-        lines: []
-      }));
+      const files: File[] = Array(21)
+        .fill(0)
+        .map((_, i) => ({
+          filename: `file${i}.ts`,
+          fileContent: 'content',
+          diff: 'diff',
+          newFile: false,
+          deletedFile: false,
+          lines: [],
+        }));
       expect(reviewCache.shouldCache(files)).toBe(false);
     });
 
     it('should return false for total size over 500KB', () => {
       const largeContent = 'a'.repeat(500001);
-      const files: File[] = [{ filename: 'file1.ts', fileContent: largeContent, diff: 'diff', newFile: false, deletedFile: false, lines: [] }];
+      const files: File[] = [
+        {
+          filename: 'file1.ts',
+          fileContent: largeContent,
+          diff: 'diff',
+          newFile: false,
+          deletedFile: false,
+          lines: [],
+        },
+      ];
       expect(reviewCache.shouldCache(files)).toBe(false);
     });
 
     it('should return true for valid cache conditions', () => {
       const files: File[] = [
-        { filename: 'file1.ts', fileContent: 'content', diff: 'diff', newFile: false, deletedFile: false, lines: [] },
-        { filename: 'file2.ts', fileContent: 'content', diff: 'diff', newFile: false, deletedFile: false, lines: [] },
+        {
+          filename: 'file1.ts',
+          fileContent: 'content',
+          diff: 'diff',
+          newFile: false,
+          deletedFile: false,
+          lines: [],
+        },
+        {
+          filename: 'file2.ts',
+          fileContent: 'content',
+          diff: 'diff',
+          newFile: false,
+          deletedFile: false,
+          lines: [],
+        },
       ];
       expect(reviewCache.shouldCache(files)).toBe(true);
     });

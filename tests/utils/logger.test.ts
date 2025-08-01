@@ -15,7 +15,10 @@ describe('Logger', () => {
 
   it('should log debug messages when the level is set to debug', async () => {
     // Directly manipulate process.env for this specific test
-    process.env = { LOG_LEVEL: 'debug', GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' };
+    process.env = {
+      LOG_LEVEL: 'debug',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'test-key',
+    };
 
     const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
 
@@ -25,12 +28,17 @@ describe('Logger', () => {
 
     logger.debug('test debug message');
 
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining('test debug message'));
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('test debug message')
+    );
   });
 
   it('should not log debug messages when the level is set to info', async () => {
     // Directly manipulate process.env for this specific test
-    process.env = { LOG_LEVEL: 'info', GOOGLE_GENERATIVE_AI_API_KEY: 'test-key' };
+    process.env = {
+      LOG_LEVEL: 'info',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'test-key',
+    };
 
     const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
 

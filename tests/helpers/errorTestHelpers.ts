@@ -21,7 +21,8 @@ export const testErrorScenarios = {
 
   createNetworkError: () => new Error('Network request failed'),
   createTimeoutError: () => new Error('Request timeout'),
-  createValidationError: (field: string) => new Error(`Validation failed: ${field}`),
+  createValidationError: (field: string) =>
+    new Error(`Validation failed: ${field}`),
 };
 
 export const mockErrorScenarios = {

@@ -74,9 +74,9 @@ describe('RateLimiter', () => {
   it('should clean up expired entries', () => {
     limiter.check('client-1');
     vi.advanceTimersByTime(60001); // Wait for cleanup interval + window
-    // @ts-ignore - access private method for testing
+    // @ts-expect-error - access private method for testing
     limiter.cleanup();
-    // @ts-ignore
+    // @ts-expect-error
     expect(limiter.clients.has('client-1')).toBe(false);
   });
 });

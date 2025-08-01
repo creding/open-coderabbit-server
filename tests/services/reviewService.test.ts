@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
 import { ReviewService } from '../../src/services/reviewService';
 import { getAiProvider } from '../../src/services/ai/index';
-import { File, ReviewComment, serverEvent, reviewStatus } from '../../src/types';
+import {
+  File,
+  ReviewComment,
+  serverEvent,
+  reviewStatus,
+} from '../../src/types';
 
 vi.mock('../../src/services/ai/index');
 
@@ -21,7 +26,9 @@ describe('ReviewService - Core Review Functionality', () => {
       generatePrObjective: vi.fn().mockResolvedValue('Test Objective'),
       generateWalkThrough: vi.fn().mockResolvedValue('Test Walkthrough'),
       performCodeReview: vi.fn().mockResolvedValue([]),
-      generateReviewSummary: vi.fn().mockResolvedValue({ shortSummary: 'Short', summary: 'Long' }),
+      generateReviewSummary: vi
+        .fn()
+        .mockResolvedValue({ shortSummary: 'Short', summary: 'Long' }),
     };
     (getAiProvider as vi.Mock).mockReturnValue(mockAiProvider);
     reviewService = new ReviewService(eventEmitter, reviewId, clientId);
@@ -41,7 +48,13 @@ describe('ReviewService - Core Review Functionality', () => {
   it('should run a full review successfully', async () => {
     const emitSpy = vi.spyOn(eventEmitter, 'emit');
     const mockComments: ReviewComment[] = [
-      { filename: 'file1.ts', startLine: 1, endLine: 1, comment: 'A comment', type: 'suggestion' },
+      {
+        filename: 'file1.ts',
+        startLine: 1,
+        endLine: 1,
+        comment: 'A comment',
+        type: 'suggestion',
+      },
     ];
     mockAiProvider.performCodeReview.mockResolvedValue(mockComments);
 
@@ -49,16 +62,30 @@ describe('ReviewService - Core Review Functionality', () => {
 
     expect(mockAiProvider.generateReviewTitle).toHaveBeenCalledWith(mockFiles);
     expect(mockAiProvider.performCodeReview).toHaveBeenCalledWith(mockFiles);
-    expect(mockAiProvider.generateReviewSummary).toHaveBeenCalledWith(mockComments);
+    expect(mockAiProvider.generateReviewSummary).toHaveBeenCalledWith(
+      mockComments
+    );
 
     // Check for key events
-    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.PR_TITLE }));
-    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.REVIEW_COMMENT }));
-    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.SUMMARY_COMMENT }));
-    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ 
-      type: serverEvent.REVIEW_COMPLETED,
-      payload: { status: reviewStatus.COMPLETED }
-    }));
+    expect(emitSpy).toHaveBeenCalledWith(
+      'reviewEvent',
+      expect.objectContaining({ type: serverEvent.PR_TITLE })
+    );
+    expect(emitSpy).toHaveBeenCalledWith(
+      'reviewEvent',
+      expect.objectContaining({ type: serverEvent.REVIEW_COMMENT })
+    );
+    expect(emitSpy).toHaveBeenCalledWith(
+      'reviewEvent',
+      expect.objectContaining({ type: serverEvent.SUMMARY_COMMENT })
+    );
+    expect(emitSpy).toHaveBeenCalledWith(
+      'reviewEvent',
+      expect.objectContaining({
+        type: serverEvent.REVIEW_COMPLETED,
+        payload: { status: reviewStatus.COMPLETED },
+      })
+    );
   });
 
   it('should handle an error during the review process', async () => {
@@ -68,10 +95,16 @@ describe('ReviewService - Core Review Functionality', () => {
 
     await reviewService.run(mockFiles);
 
-    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ type: serverEvent.ERROR }));
-    expect(emitSpy).toHaveBeenCalledWith('reviewEvent', expect.objectContaining({ 
-      type: serverEvent.REVIEW_COMPLETED,
-      payload: { status: reviewStatus.FAILED }
-    }));
+    expect(emitSpy).toHaveBeenCalledWith(
+      'reviewEvent',
+      expect.objectContaining({ type: serverEvent.ERROR })
+    );
+    expect(emitSpy).toHaveBeenCalledWith(
+      'reviewEvent',
+      expect.objectContaining({
+        type: serverEvent.REVIEW_COMPLETED,
+        payload: { status: reviewStatus.FAILED },
+      })
+    );
   });
 });

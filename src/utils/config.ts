@@ -57,8 +57,11 @@ export class ConfigManager {
         timeout: parseInt(env.REVIEW_TIMEOUT_MS, 10),
       },
       ai: {
-        provider: 'google',
-        model: env.AI_MODEL,
+        provider: env.AI_PROVIDER as 'google',
+        model:
+          env.AI_PROVIDER === 'google'
+            ? env.GOOGLE_AI_MODEL
+            : env.OPENAI_AI_MODEL,
         apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
         maxRetries: 3,
         timeoutMs: 30000,
