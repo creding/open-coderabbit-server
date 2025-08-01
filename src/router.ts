@@ -32,14 +32,28 @@ const vsCodeRouter = t.router({
   subscribeToEvents: t.procedure
     .input(z.object({ clientId: z.string() }))
     .subscription(({ input }) => {
+      logger.debug('Extension subscription started', {
+        clientId: input.clientId,
+        timestamp: new Date().toISOString(),
+      });
+
       return observable<ReviewEvent>((emit) => {
         const onReviewEvent = (data: ReviewEvent) => {
           if (data.clientId === input.clientId) {
+            logger.debug('Sending event to extension', {
+              clientId: input.clientId,
+              eventType: data.type,
+              reviewId: data.reviewId,
+            });
             emit.next(data);
           }
         };
         eventEmitter.on('reviewEvent', onReviewEvent);
         return () => {
+          logger.debug('Extension subscription ended', {
+            clientId: input.clientId,
+            timestamp: new Date().toISOString(),
+          });
           eventEmitter.off('reviewEvent', onReviewEvent);
         };
       });
@@ -49,9 +63,58 @@ const vsCodeRouter = t.router({
     .input(z.object({ extensionEvent: extensionEventSchema }))
     .mutation(async ({ input }) => {
       const { reviewId, files, clientId } = input.extensionEvent;
-      console.log(
-        `Received review request ${reviewId} for ${files?.length} file(s) from client ${clientId}.`
-      );
+
+      // Log complete extension event data
+      logger.debug('=== EXTENSION REQUEST START ===', {
+        reviewId,
+        clientId,
+        timestamp: new Date().toISOString(),
+      });
+
+      logger.debug('Extension Event Details:', {
+        reviewId,
+        clientId,
+        fileCount: files?.length || 0,
+        extensionEvent: JSON.stringify(input.extensionEvent, null, 2),
+      });
+
+      // Log each file in detail
+      if (files && files.length > 0) {
+        logger.debug('Files received from extension:', {
+          reviewId,
+          totalFiles: files.length,
+        });
+
+        files.forEach((file, index) => {
+          const contentPreview =
+            file.fileContent?.substring(0, 200) +
+            (file.fileContent?.length > 200 ? '...' : '');
+          const diffPreview =
+            file.diff?.substring(0, 200) +
+            (file.diff?.length > 200 ? '...' : '');
+
+          logger.debug(`File ${index + 1}/${files.length}:`, {
+            reviewId,
+            filename: file.filename,
+            contentLength: file.fileContent?.length || 0,
+            diffLength: file.diff?.length || 0,
+            hasContent: !!file.fileContent,
+            hasDiff: !!file.diff,
+            contentPreview,
+            diffPreview,
+          });
+        });
+      } else {
+        logger.warn('No files received from extension', { reviewId, clientId });
+      }
+
+      logger.debug('=== EXTENSION REQUEST END ===', { reviewId });
+
+      logger.debug('Received review request', {
+        reviewId,
+        fileCount: files?.length || 0,
+        clientId,
+      });
 
       // Rate limiting check
       const rateLimitResult = rateLimiter.check(clientId);
@@ -139,6 +202,13 @@ const vsCodeRouter = t.router({
     .input(z.object({ extensionEvent: z.object({ reviewId: z.string() }) }))
     .mutation(({ input }) => {
       const { reviewId } = input.extensionEvent;
+
+      logger.debug('=== EXTENSION STOP REQUEST ===', {
+        reviewId,
+        timestamp: new Date().toISOString(),
+        extensionEvent: JSON.stringify(input.extensionEvent, null, 2),
+      });
+
       eventEmitter.emit('reviewEvent', {
         type: serverEvent.REVIEW_COMPLETED,
         payload: { status: reviewStatus.CANCELLED },
@@ -146,6 +216,9 @@ const vsCodeRouter = t.router({
         clientId: '*',
         endedAt: new Date().toISOString(),
       });
+
+      logger.debug('Stop review event emitted', { reviewId });
+
       return {
         success: true,
         message: `Review process stopped for ${reviewId}.`,
