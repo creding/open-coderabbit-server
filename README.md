@@ -92,17 +92,139 @@ npm start
 ```
 
 ### Using Docker
-```bash
-# Build the image
-docker build -t coderabbit-server .
 
-# Run the container
-docker run -p 5353:5353 --env-file .env coderabbit-server
+The CodeRabbit server is fully containerized and production-ready with Docker support.
+
+### Quick Start
+
+#### Using the Docker Management Script (Recommended)
+```bash
+# Start development environment with hot reload
+./scripts/docker.sh dev
+
+# Start production environment
+./scripts/docker.sh start
+
+# Stop all containers
+./scripts/docker.sh stop
+
+# View logs
+./scripts/docker.sh logs
+
+# Check health
+./scripts/docker.sh health
 ```
 
-### Using Docker Compose
+#### Manual Docker Commands
+
+**Build the image:**
 ```bash
-docker-compose up
+docker build -t coderabbit-server .
+```
+
+**Run production container:**
+```bash
+docker run -d --name coderabbit -p 5353:5353 --env-file .env coderabbit-server
+```
+
+**Using Docker Compose:**
+```bash
+# Production
+docker-compose up -d
+
+# Development with hot reload
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+### Docker Configuration
+
+#### Multi-Stage Dockerfile
+- **Builder stage**: Compiles TypeScript and installs all dependencies
+- **Production stage**: Minimal runtime image with only production dependencies
+- **Base image**: `node:20-alpine` for security and size optimization
+
+#### Environment Variables
+The container uses the same environment variables as the local setup. Ensure your `.env` file is properly configured:
+
+```bash
+# Copy example environment file
+cp .env.example .env
+# Edit with your API keys and configuration
+```
+
+#### Health Checks
+Both Docker Compose configurations include health checks:
+- **Endpoint**: `GET /health`
+- **Interval**: 30 seconds
+- **Timeout**: 10 seconds
+- **Retries**: 3
+- **Start period**: 40 seconds
+
+#### Logging
+Production containers are configured with log rotation:
+- **Max file size**: 10MB
+- **Max files**: 3
+- **Format**: JSON
+
+### Development vs Production
+
+| Feature | Development | Production |
+|---------|-------------|------------|
+| **File** | `docker-compose.dev.yml` | `docker-compose.yml` |
+| **Hot Reload** | ✅ Volume mounted | ❌ Built-in |
+| **Build Target** | `builder` stage | Final stage |
+| **Dependencies** | All (dev + prod) | Production only |
+| **Restart Policy** | `unless-stopped` | `unless-stopped` |
+| **Health Checks** | ✅ Enabled | ✅ Enabled |
+
+### Docker Management Script
+
+The `scripts/docker.sh` script provides convenient commands:
+
+```bash
+./scripts/docker.sh [COMMAND]
+
+Commands:
+  build       Build the Docker image
+  dev         Start development environment with hot reload
+  start       Start production container
+  stop        Stop running containers
+  restart     Restart containers
+  logs        Show container logs
+  shell       Open shell in running container
+  clean       Remove containers and images
+  health      Check container health
+  help        Show this help message
+```
+
+### Troubleshooting
+
+**Container won't start:**
+```bash
+# Check logs
+./scripts/docker.sh logs
+
+# Or manually
+docker-compose logs -f
+```
+
+**Health check failing:**
+```bash
+# Test health endpoint
+curl http://localhost:5353/health
+
+# Check container status
+docker ps
+```
+
+**Port already in use:**
+```bash
+# Find process using port 5353
+lsof -i :5353
+
+# Or change port in docker-compose.yml
+ports:
+  - "5354:5353"  # Use different external port
 ```
 
 ## 📡 API Endpoints
