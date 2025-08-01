@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateObject, LanguageModel } from 'ai';
+import { generateObject, streamObject, LanguageModel } from 'ai';
 import { z } from 'zod';
 import { env } from '../../constants';
 import { ReviewComment, File } from '../../types';
@@ -16,6 +16,7 @@ import {
   generatePrObjectivePrompt,
   generateWalkThroughPrompt,
   performCodeReviewPrompt,
+  codeReviewSystemPrompt,
 } from './prompts';
 import {
   prObjectiveSchema,
@@ -132,7 +133,7 @@ class UnifiedAiProvider implements AiProvider {
   }
 
   async performCodeReview(files: File[]): Promise<ReviewComment[]> {
-    const prompt = performCodeReviewPrompt(files);
+    const userPrompt = performCodeReviewPrompt(files);
     const { object } = await this.withRetry(
       async () =>
         generateObject({
@@ -140,11 +141,39 @@ class UnifiedAiProvider implements AiProvider {
           schema: z.object({
             comments: z.array(reviewCommentSchema),
           }),
-          prompt: prompt,
+          system: codeReviewSystemPrompt,
+          prompt: userPrompt,
         }),
       'Failed to perform code review'
     );
     return object.comments;
+  }
+
+  async *streamCodeReview(
+    files: File[]
+  ): AsyncGenerator<ReviewComment, void, unknown> {
+    const userPrompt = performCodeReviewPrompt(files);
+
+    try {
+      const { elementStream } = streamObject({
+        model: this.model,
+        output: 'array',
+        schema: reviewCommentSchema,
+        system: codeReviewSystemPrompt,
+        prompt: userPrompt,
+      });
+
+      for await (const comment of elementStream) {
+        yield comment;
+      }
+    } catch (error) {
+      throw new RetryableError(
+        `Failed to stream code review: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        isRetryableAIError(error)
+      );
+    }
   }
 }
 

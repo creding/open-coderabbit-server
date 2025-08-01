@@ -10,6 +10,7 @@ import {
   ServerEvent,
   EventPayload,
   ReviewStatus,
+  ProductSettingsPayload,
 } from '../types';
 import * as diff from 'diff';
 import { logger } from '../utils/logger';
@@ -46,6 +47,15 @@ export class ReviewService {
 
   private sendStatusUpdate(status: 'summarizing' | 'reviewing') {
     this.emitEvent(serverEvent.REVIEW_STATUS, { reviewStatus: status });
+  }
+
+  private sendProductSettings() {
+    // For now, return true for isPaidUser as requested
+    // TODO: Implement actual user subscription status lookup
+    const payload: ProductSettingsPayload = {
+      isPaidUser: true,
+    };
+    this.emitEvent(serverEvent.PRODUCT_SETTINGS, payload);
   }
 
   private async generatePrDetails(files: File[]) {
@@ -284,7 +294,7 @@ export class ReviewService {
     const startTime = Date.now();
 
     try {
-      logger.info('Starting code review', {
+      logger.debug('Starting code review', {
         reviewId: this.reviewId,
         clientId: this.clientId,
         fileCount: files.length,
@@ -294,6 +304,10 @@ export class ReviewService {
       this.emitEvent(serverEvent.STATE_UPDATE, {
         status: reviewStatus.IN_PROGRESS,
       });
+
+      // Send product settings early in the review process
+      this.sendProductSettings();
+
       this.sendStatusUpdate('summarizing');
 
       // Generate PR details with monitoring
@@ -306,26 +320,44 @@ export class ReviewService {
 
       this.sendStatusUpdate('reviewing');
 
-      // Perform code review with monitoring
+      // Perform streaming code review with monitoring
       const reviewStartTime = Date.now();
-      const allComments = await this.aiProvider.performCodeReview(files);
+      const allComments: ReviewComment[] = [];
+
+      try {
+        for await (const comment of this.aiProvider.streamCodeReview(files)) {
+          allComments.push(comment);
+          // Process and send each comment immediately as it arrives
+          await this.processAndSendComments([comment], files);
+        }
+      } catch (error) {
+        // Fallback to synchronous method if streaming fails
+        logger.warn('Streaming failed, falling back to synchronous review', {
+          reviewId: this.reviewId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        const syncComments = await this.aiProvider.performCodeReview(files);
+        allComments.push(...syncComments);
+        await this.processAndSendComments(syncComments, files);
+      }
+
       logger.debug('Code review completed', {
         reviewId: this.reviewId,
         commentCount: allComments.length,
         duration: Date.now() - reviewStartTime,
       });
 
+      // Sort all comments for categorization and summary
       allComments.sort(
         (a: ReviewComment, b: ReviewComment) => b.startLine - a.startLine
       );
-      await this.processAndSendComments(allComments, files);
       await this.categorizeAndSendDetails(allComments, files);
       await this.generateAndSendSummary(allComments);
 
       const totalDuration = Date.now() - startTime;
       monitor.completeReview(this.reviewId, allComments.length);
 
-      logger.info('Review completed successfully', {
+      logger.debug('Review completed successfully', {
         reviewId: this.reviewId,
         clientId: this.clientId,
         duration: totalDuration,

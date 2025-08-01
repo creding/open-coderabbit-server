@@ -93,14 +93,14 @@ const requestListener = async (
 };
 
 if (env.SSL === 'true') {
-  logger.info('SSL enabled');
+  logger.debug('SSL enabled');
   try {
     const serverOptions = {
       key: fs.readFileSync('key.pem'),
       cert: fs.readFileSync('cert.pem'),
     };
     server = https.createServer(serverOptions, requestListener);
-    logger.info('SSL certificates loaded successfully');
+    logger.debug('SSL certificates loaded successfully');
   } catch (error) {
     logger.error(
       'Failed to read SSL certificate files. Please ensure key.pem and cert.pem are present.',
@@ -112,7 +112,7 @@ if (env.SSL === 'true') {
   }
 } else {
   server = http.createServer(requestListener);
-  logger.info('HTTP server created (SSL disabled)');
+  logger.debug('HTTP server created (SSL disabled)');
 }
 
 const wss = new WebSocketServer({ server });
@@ -149,7 +149,7 @@ server.listen(port, env.HOST, () => {
   console.log(`📈 Metrics: ${serverUrl}/metrics`);
 
   // Log configuration
-  logger.info('Server configuration', {
+  logger.debug('Server configuration', {
     port,
     host: env.HOST,
     ssl: env.SSL === 'true',
@@ -186,7 +186,7 @@ function gracefulShutdown(signal: string) {
   }
 
   isShuttingDown = true;
-  logger.info(`${signal} received, shutting down gracefully`);
+  logger.debug(`${signal} received, shutting down gracefully`);
 
   // Set a timeout to force exit if shutdown takes too long
   const shutdownTimeout = setTimeout(() => {
@@ -196,11 +196,11 @@ function gracefulShutdown(signal: string) {
 
   // Close WebSocket server first
   wss.close(() => {
-    logger.info('WebSocket server closed');
+    logger.debug('WebSocket server closed');
 
     // Then close HTTP server
     server.close(() => {
-      logger.info('HTTP server closed');
+      logger.debug('HTTP server closed');
       clearTimeout(shutdownTimeout);
       process.exit(0);
     });

@@ -64,6 +64,7 @@ export type StateUpdatePayload = { status: ReviewStatus };
 export type ErrorPayload = { message: string };
 export type RateLimitExceededPayload = { message: string };
 export type ReviewCompletedPayload = { status?: ReviewStatus };
+export type ProductSettingsPayload = { isPaidUser: boolean };
 
 export type EventPayload =
   | ReviewStatusUpdatePayload
@@ -79,6 +80,8 @@ export type EventPayload =
   | ErrorPayload
   | RateLimitExceededPayload
   | ReviewCompletedPayload
+  | ProductSettingsPayload
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   | {};
 
 export const serverEvent = {
@@ -94,6 +97,7 @@ export const serverEvent = {
   REVIEW_STATUS: 'review_status',
   STATE_UPDATE: 'state_update',
   RATE_LIMIT_EXCEEDED: 'rate_limit_exceeded',
+  PRODUCT_SETTINGS: 'product_settings',
   ERROR: 'error',
 } as const;
 
