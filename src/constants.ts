@@ -16,8 +16,8 @@ const envSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: z
     .string()
     .min(1, 'Google Generative AI API key is required.'),
-  AI_MODEL: z.string().default('gemini-2.5-flash'),
-
+  GOOGLE_AI_MODEL: z.string().default('gemini-2.5-flash'),
+  OPENAI_AI_MODEL: z.string().default('gpt-4o-2024-08-06'),
   // File validation
   MAX_FILE_SIZE: z.string().default('10485760'), // 10MB
   MAX_FILES_PER_REVIEW: z.string().default('50'),

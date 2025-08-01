@@ -34,13 +34,13 @@ class UnifiedAiProvider implements AiProvider {
         const google = createGoogleGenerativeAI({
           apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
         });
-        this.model = google(env.AI_MODEL);
+        this.model = google(env.GOOGLE_AI_MODEL);
         break;
       case 'openai':
         const openai = createOpenAI({
           apiKey: env.OPENAI_API_KEY,
         });
-        this.model = openai(env.AI_MODEL);
+        this.model = openai(env.OPENAI_AI_MODEL);
         break;
       // Add other providers like openrouter here
       default:
@@ -137,12 +137,14 @@ class UnifiedAiProvider implements AiProvider {
       async () =>
         generateObject({
           model: this.model,
-          schema: z.array(reviewCommentSchema),
+          schema: z.object({
+            comments: z.array(reviewCommentSchema),
+          }),
           prompt: prompt,
         }),
       'Failed to perform code review'
     );
-    return object as ReviewComment[];
+    return object.comments;
   }
 }
 

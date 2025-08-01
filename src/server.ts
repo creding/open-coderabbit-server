@@ -153,7 +153,7 @@ server.listen(port, env.HOST, () => {
     port,
     host: env.HOST,
     ssl: env.SSL === 'true',
-    aiModel: env.AI_MODEL,
+    aiProvider: env.AI_PROVIDER,
     logLevel: env.LOG_LEVEL,
     maxFileSize: env.MAX_FILE_SIZE,
     maxFiles: env.MAX_FILES_PER_REVIEW,
@@ -161,7 +161,7 @@ server.listen(port, env.HOST, () => {
   });
 
   console.log(`🔍 Log level: ${env.LOG_LEVEL.toUpperCase()}`);
-  console.log(`🤖 AI Model: ${env.AI_MODEL}`);
+  console.log(`🤖 AI Provider: ${env.AI_PROVIDER}`);
   console.log(
     `⚡ Rate limit: ${env.RATE_LIMIT_REQUESTS} requests per ${parseInt(env.RATE_LIMIT_WINDOW_MS, 10) / 1000}s`
   );
