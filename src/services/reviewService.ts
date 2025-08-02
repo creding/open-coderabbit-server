@@ -105,6 +105,7 @@ export class ReviewService {
   ) {
     for (const comment of comments) {
       let suggestionDiff: string | undefined = undefined;
+      let patch: string | undefined = undefined;
       if (comment.suggestions && comment.suggestions.length > 0) {
         const file = files.find((f) => f.filename === comment.filename);
         if (file) {
@@ -113,7 +114,7 @@ export class ReviewService {
             .slice(comment.startLine - 1, comment.endLine)
             .join('\n');
           const suggestedCode = comment.suggestions[0];
-          const patch = diff.createPatch(
+          patch = diff.createPatch(
             comment.filename,
             originalCodeBlock,
             suggestedCode,
@@ -121,12 +122,22 @@ export class ReviewService {
             'Suggested'
           );
           const patchLines = patch.split('\n');
-          const diffStartIndex = patchLines.findIndex((line) =>
-            line.startsWith('@@')
-          );
-          const diffLines =
-            diffStartIndex !== -1 ? patchLines.slice(diffStartIndex) : [];
-          suggestionDiff = '```diff\n' + diffLines.join('\n') + '\n```';
+
+          // Filter out patch headers, @@ lines, and metadata - keep only + and - lines
+          const cleanDiffLines = patchLines.filter((line) => {
+            const trimmed = line.trim();
+            return (
+              (line.startsWith('+') || line.startsWith('-')) &&
+              !line.startsWith('+++') &&
+              !line.startsWith('---') &&
+              trimmed !== ''
+            );
+          });
+
+          // Only create diff if we have actual changes
+          if (cleanDiffLines.length > 0) {
+            suggestionDiff = '```diff\n' + cleanDiffLines.join('\n') + '\n```';
+          }
         }
       }
 
@@ -139,7 +150,7 @@ export class ReviewService {
         ...comment,
         comment: commentWithDiff,
         indicatorTypes: [comment.type],
-        suggestionDiff,
+        suggestionDiff: patch,
         codegenInstructions: comment.codegenInstructions,
       };
 

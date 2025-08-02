@@ -324,7 +324,18 @@ ports:
 GET /health
 ```
 
-Returns server health status and configuration.
+Returns server health status:
+
+- **Healthy status**: Returns plain text `"OK"` with HTTP 200 (VSCode extension compatible)
+- **Degraded/Unhealthy status**: Returns detailed JSON with metrics and diagnostics
+
+**Example responses:**
+
+```bash
+# Healthy server
+curl http://localhost:5353/health
+# Response: "OK" (Content-Type: text/plain)
+```
 
 ### Metrics
 
@@ -460,10 +471,10 @@ The included `Dockerfile` uses multi-stage builds for optimized production image
 
 The server provides built-in health checks and metrics:
 
-- Health endpoint returns server status and configuration
-- Metrics endpoint provides performance data
-- Structured logging with configurable levels
-- Request monitoring and error tracking
+- **Health endpoint** (`/health`): Returns plain text "OK" for healthy status, detailed JSON for issues
+- **Metrics endpoint** (`/metrics`): Provides comprehensive performance and system data
+- **Structured logging** with configurable levels (error, warn, info, debug)
+- **Request monitoring** and error tracking with retry mechanisms
 
 ## 🤝 Contributing
 
