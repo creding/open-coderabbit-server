@@ -16,6 +16,16 @@ import * as diff from 'diff';
 import { logger } from '../utils/logger';
 import { monitor } from '../utils/monitor';
 
+function isRetryableCause(
+  cause: unknown
+): cause is { isRetryable?: boolean; responseBody?: string } {
+  if (typeof cause !== 'object' || cause === null) return false;
+  const c = cause as { isRetryable?: unknown; responseBody?: unknown };
+  if ('isRetryable' in c && typeof c.isRetryable !== 'boolean') return false;
+  if ('responseBody' in c && typeof c.responseBody !== 'string') return false;
+  return true;
+}
+
 export class ReviewService {
   private aiProvider: AiProvider;
 
@@ -281,13 +291,13 @@ export class ReviewService {
     let eventType: ServerEvent = serverEvent.ERROR;
 
     if (error instanceof Error && 'cause' in error) {
-      const cause = error.cause as any;
-      if (
-        cause?.isRetryable === true &&
-        cause?.responseBody?.includes('overloaded')
-      ) {
-        errorMessage = 'The model is overloaded. Please try again later.';
-        eventType = serverEvent.RATE_LIMIT_EXCEEDED;
+      const cause = (error as { cause?: unknown }).cause;
+      if (isRetryableCause(cause)) {
+        const body = cause.responseBody ?? '';
+        if (cause.isRetryable === true && body.includes('overloaded')) {
+          errorMessage = 'The model is overloaded. Please try again later.';
+          eventType = serverEvent.RATE_LIMIT_EXCEEDED;
+        }
       }
     }
 

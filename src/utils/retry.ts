@@ -6,7 +6,7 @@ export interface RetryOptions {
   baseDelayMs?: number;
   maxDelayMs?: number;
   backoffMultiplier?: number;
-  retryCondition?: (error: any) => boolean;
+  retryCondition?: (error: unknown) => boolean;
 }
 
 export class RetryableError extends Error {
@@ -31,7 +31,7 @@ export async function retryWithBackoff<T>(
     retryCondition = () => true,
   } = options;
 
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -74,7 +74,7 @@ export async function retryWithBackoff<T>(
 /**
  * Default retry condition for AI operations
  */
-export function isRetryableAIError(error: any): boolean {
+export function isRetryableAIError(error: unknown): boolean {
   if (error instanceof RetryableError) {
     return error.isRetryable;
   }
@@ -91,6 +91,11 @@ export function isRetryableAIError(error: any): boolean {
     'gateway timeout',
   ];
 
-  const errorMessage = error.message?.toLowerCase() || '';
+  const errorMessage =
+    typeof error === 'string'
+      ? error.toLowerCase()
+      : typeof (error as { message?: unknown }).message === 'string'
+        ? String((error as { message?: unknown }).message).toLowerCase()
+        : '';
   return retryableMessages.some((msg) => errorMessage.includes(msg));
 }
