@@ -372,7 +372,6 @@ Real-time communication for code review requests and updates.
 
 ### Utilities
 
-- **`utils/cache.ts`** - LRU caching with TTL support
 - **`utils/config.ts`** - Configuration management
 - **`utils/fileValidator.ts`** - File validation and limits
 - **`utils/logger.ts`** - Structured logging
