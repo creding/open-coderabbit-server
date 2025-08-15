@@ -31,7 +31,7 @@ A powerful TypeScript backend server that provides AI-powered code review servic
 1. **Clone the repository**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/creding/open-coderabbit-server
    cd open-coderabbit-server
    ```
 
