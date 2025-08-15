@@ -11,7 +11,7 @@ export interface LogEntry {
   timestamp: string;
   level: string;
   message: string;
-  meta?: any;
+  meta?: Record<string, unknown>;
   requestId?: string;
   clientId?: string;
 }
@@ -44,7 +44,11 @@ export class Logger {
     return level <= this.level;
   }
 
-  private formatMessage(level: string, message: string, meta?: any): string {
+  private formatMessage(
+    level: string,
+    message: string,
+    meta?: Record<string, unknown>
+  ): string {
     const timestamp = new Date().toISOString();
     const emoji = this.getLogEmoji(level);
 
@@ -76,7 +80,7 @@ export class Logger {
     level: LogLevel,
     levelName: string,
     message: string,
-    meta?: any
+    meta?: Record<string, unknown>
   ): void {
     if (!this.shouldLog(level)) return;
 
@@ -104,19 +108,19 @@ export class Logger {
     }
   }
 
-  error(message: string, meta?: any): void {
+  error(message: string, meta?: Record<string, unknown>): void {
     this.log(LogLevel.ERROR, 'error', message, meta);
   }
 
-  warn(message: string, meta?: any): void {
+  warn(message: string, meta?: Record<string, unknown>): void {
     this.log(LogLevel.WARN, 'warn', message, meta);
   }
 
-  info(message: string, meta?: any): void {
+  info(message: string, meta?: Record<string, unknown>): void {
     this.log(LogLevel.INFO, 'info', message, meta);
   }
 
-  debug(message: string, meta?: any): void {
+  debug(message: string, meta?: Record<string, unknown>): void {
     this.log(LogLevel.DEBUG, 'debug', message, meta);
   }
 

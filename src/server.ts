@@ -14,62 +14,9 @@ const requestListener = async (
   req: http.IncomingMessage,
   res: http.ServerResponse
 ) => {
-  const startTime = Date.now();
-
   try {
     if (req.url === '/health' && req.method === 'GET') {
-      const healthStatus = monitor.getHealthStatus();
-      const metrics = monitor.getMetrics();
-
-      const healthData = {
-        status: healthStatus.status,
-        timestamp: new Date().toISOString(),
-        uptime: metrics.system.uptime,
-        memory: {
-          used: Math.round(metrics.system.memoryUsage.heapUsed / 1024 / 1024),
-          total: Math.round(metrics.system.memoryUsage.heapTotal / 1024 / 1024),
-          usage: Math.round(
-            (metrics.system.memoryUsage.heapUsed /
-              metrics.system.memoryUsage.heapTotal) *
-              100
-          ),
-        },
-        reviews: {
-          total: metrics.reviews.total,
-          active: metrics.reviews.inProgress,
-          completed: metrics.reviews.completed,
-          failed: metrics.reviews.failed,
-          averageDuration: Math.round(metrics.reviews.averageDuration),
-        },
-        ai: {
-          requests: metrics.ai.requests,
-          successRate:
-            metrics.ai.requests > 0
-              ? Math.round((metrics.ai.successful / metrics.ai.requests) * 100)
-              : 100,
-          averageDuration: Math.round(metrics.ai.averageDuration),
-        },
-        connections: metrics.connections,
-        issues: healthStatus.issues,
-      };
-
-      const statusCode =
-        healthStatus.status === 'healthy'
-          ? 200
-          : healthStatus.status === 'degraded'
-            ? 200
-            : 503;
-
-      res.writeHead(statusCode, {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-      });
-      res.end(JSON.stringify(healthData, null, 2));
-
-      logger.debug('Health check requested', {
-        status: healthStatus.status,
-        duration: Date.now() - startTime,
-      });
+      res.end('OK');
     } else if (req.url === '/metrics' && req.method === 'GET') {
       const metrics = monitor.getMetrics();
       res.writeHead(200, {

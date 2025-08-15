@@ -16,6 +16,16 @@ import * as diff from 'diff';
 import { logger } from '../utils/logger';
 import { monitor } from '../utils/monitor';
 
+function isRetryableCause(
+  cause: unknown
+): cause is { isRetryable?: boolean; responseBody?: string } {
+  if (typeof cause !== 'object' || cause === null) return false;
+  const c = cause as { isRetryable?: unknown; responseBody?: unknown };
+  if ('isRetryable' in c && typeof c.isRetryable !== 'boolean') return false;
+  if ('responseBody' in c && typeof c.responseBody !== 'string') return false;
+  return true;
+}
+
 export class ReviewService {
   private aiProvider: AiProvider;
 
@@ -105,6 +115,7 @@ export class ReviewService {
   ) {
     for (const comment of comments) {
       let suggestionDiff: string | undefined = undefined;
+      let patch: string | undefined = undefined;
       if (comment.suggestions && comment.suggestions.length > 0) {
         const file = files.find((f) => f.filename === comment.filename);
         if (file) {
@@ -113,7 +124,7 @@ export class ReviewService {
             .slice(comment.startLine - 1, comment.endLine)
             .join('\n');
           const suggestedCode = comment.suggestions[0];
-          const patch = diff.createPatch(
+          patch = diff.createPatch(
             comment.filename,
             originalCodeBlock,
             suggestedCode,
@@ -121,12 +132,22 @@ export class ReviewService {
             'Suggested'
           );
           const patchLines = patch.split('\n');
-          const diffStartIndex = patchLines.findIndex((line) =>
-            line.startsWith('@@')
-          );
-          const diffLines =
-            diffStartIndex !== -1 ? patchLines.slice(diffStartIndex) : [];
-          suggestionDiff = '```diff\n' + diffLines.join('\n') + '\n```';
+
+          // Filter out patch headers, @@ lines, and metadata - keep only + and - lines
+          const cleanDiffLines = patchLines.filter((line) => {
+            const trimmed = line.trim();
+            return (
+              (line.startsWith('+') || line.startsWith('-')) &&
+              !line.startsWith('+++') &&
+              !line.startsWith('---') &&
+              trimmed !== ''
+            );
+          });
+
+          // Only create diff if we have actual changes
+          if (cleanDiffLines.length > 0) {
+            suggestionDiff = '```diff\n' + cleanDiffLines.join('\n') + '\n```';
+          }
         }
       }
 
@@ -139,7 +160,7 @@ export class ReviewService {
         ...comment,
         comment: commentWithDiff,
         indicatorTypes: [comment.type],
-        suggestionDiff,
+        suggestionDiff: patch,
         codegenInstructions: comment.codegenInstructions,
       };
 
@@ -270,13 +291,13 @@ export class ReviewService {
     let eventType: ServerEvent = serverEvent.ERROR;
 
     if (error instanceof Error && 'cause' in error) {
-      const cause = error.cause as any;
-      if (
-        cause?.isRetryable === true &&
-        cause?.responseBody?.includes('overloaded')
-      ) {
-        errorMessage = 'The model is overloaded. Please try again later.';
-        eventType = serverEvent.RATE_LIMIT_EXCEEDED;
+      const cause = (error as { cause?: unknown }).cause;
+      if (isRetryableCause(cause)) {
+        const body = cause.responseBody ?? '';
+        if (cause.isRetryable === true && body.includes('overloaded')) {
+          errorMessage = 'The model is overloaded. Please try again later.';
+          eventType = serverEvent.RATE_LIMIT_EXCEEDED;
+        }
       }
     }
 
