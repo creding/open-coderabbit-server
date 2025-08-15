@@ -67,18 +67,36 @@ class UnifiedAiProvider implements AiProvider {
     });
   }
 
-  async generateReviewTitle(files: File[]): Promise<string> {
-    const prompt = generateReviewTitlePrompt(files);
-    const { object } = await this.withRetry(
+  private async callObject<TSchema extends z.ZodTypeAny>(
+    schema: TSchema,
+    prompt: string,
+    system?: string,
+    errorMessagePrefix?: string
+  ): Promise<z.infer<TSchema>> {
+    const result = await this.withRetry(
       async () =>
         generateObject({
           model: this.model,
-          schema: reviewTitleSchema,
-          prompt: prompt,
-        }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          schema: schema as any,
+          ...(system ? { system } : {}),
+          prompt,
+        }) as unknown,
+      errorMessagePrefix ?? 'AI request failed'
+    );
+    const { object } = result as { object: z.infer<TSchema> };
+    return object;
+  }
+
+  async generateReviewTitle(files: File[]): Promise<string> {
+    const prompt = generateReviewTitlePrompt(files);
+    const obj = await this.callObject(
+      reviewTitleSchema,
+      prompt,
+      undefined,
       'Failed to generate review title'
     );
-    return object.title;
+    return obj.title;
   }
 
   async generateReviewSummary(
@@ -92,61 +110,46 @@ class UnifiedAiProvider implements AiProvider {
     }
 
     const prompt = generateReviewSummaryPrompt(comments);
-    const { object } = await this.withRetry(
-      async () =>
-        generateObject({
-          model: this.model,
-          schema: reviewSummarySchema,
-          prompt: prompt,
-        }),
+    const obj = await this.callObject(
+      reviewSummarySchema,
+      prompt,
+      undefined,
       'Failed to generate review summary'
     );
-    return object;
+    return obj;
   }
 
   async generatePrObjective(files: File[]): Promise<string> {
     const prompt = generatePrObjectivePrompt(files);
-    const { object } = await this.withRetry(
-      async () =>
-        generateObject({
-          model: this.model,
-          schema: prObjectiveSchema,
-          prompt: prompt,
-        }),
+    const obj = await this.callObject(
+      prObjectiveSchema,
+      prompt,
+      undefined,
       'Failed to generate PR objective'
     );
-    return object.objective;
+    return obj.objective;
   }
 
   async generateWalkThrough(files: File[]): Promise<string> {
     const prompt = generateWalkThroughPrompt(files);
-    const { object } = await this.withRetry(
-      async () =>
-        generateObject({
-          model: this.model,
-          schema: walkThroughSchema,
-          prompt: prompt,
-        }),
+    const obj = await this.callObject(
+      walkThroughSchema,
+      prompt,
+      undefined,
       'Failed to generate walkthrough'
     );
-    return object.walkThrough;
+    return obj.walkThrough;
   }
 
   async performCodeReview(files: File[]): Promise<ReviewComment[]> {
     const userPrompt = performCodeReviewPrompt(files);
-    const { object } = await this.withRetry(
-      async () =>
-        generateObject({
-          model: this.model,
-          schema: z.object({
-            comments: z.array(reviewCommentSchema),
-          }),
-          system: codeReviewSystemPrompt,
-          prompt: userPrompt,
-        }),
+    const comments = await this.callObject(
+      z.array(reviewCommentSchema),
+      userPrompt,
+      codeReviewSystemPrompt,
       'Failed to perform code review'
     );
-    return object.comments;
+    return comments;
   }
 
   async *streamCodeReview(

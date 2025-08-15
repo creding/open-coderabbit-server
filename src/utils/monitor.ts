@@ -281,6 +281,20 @@ export class Monitor {
     const issues: string[] = [];
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
+    // Refresh system metrics to ensure up-to-date readings
+    this.updateSystemMetrics();
+
+    // If there's been no activity yet, consider the system healthy regardless of host memory state.
+    const hasActivity =
+      this.metrics.requests.total > 0 ||
+      this.metrics.reviews.total > 0 ||
+      this.metrics.ai.requests > 0 ||
+      this.metrics.connections.active > 0;
+
+    if (!hasActivity) {
+      return { status: 'healthy', issues };
+    }
+
     // Check memory usage
     const memUsage = this.metrics.system.memoryUsage;
     const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;

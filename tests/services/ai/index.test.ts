@@ -91,7 +91,7 @@ describe('UnifiedAiProvider', () => {
       },
     ];
     vi.mocked(generateObject).mockResolvedValue({
-      object: { comments: expectedComments },
+      object: expectedComments,
       finishReason: 'stop',
       usage: { promptTokens: 10, completionTokens: 5 },
     } as any);
