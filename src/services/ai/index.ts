@@ -143,26 +143,13 @@ class UnifiedAiProvider implements AiProvider {
 
   async performCodeReview(files: File[]): Promise<ReviewComment[]> {
     const userPrompt = performCodeReviewPrompt(files);
-    const result = (await this.callObject(
+    const comments = await this.callObject(
       z.array(reviewCommentSchema),
       userPrompt,
       codeReviewSystemPrompt,
       'Failed to perform code review'
-    )) as unknown;
-
-    // Backward-compat handling: some callers/tests may wrap comments in { comments: [...] }
-    if (Array.isArray(result)) {
-      return result as ReviewComment[];
-    }
-    if (
-      result &&
-      typeof result === 'object' &&
-      Array.isArray((result as { comments?: unknown }).comments)
-    ) {
-      return (result as { comments: ReviewComment[] }).comments;
-    }
-    // Fallback to empty array if shape is unexpected
-    return [];
+    );
+    return comments;
   }
 
   async *streamCodeReview(
