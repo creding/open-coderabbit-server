@@ -1,7 +1,10 @@
 # Open CodeRabbit Server
 
 A powerful TypeScript backend server that provides AI-powered code review services for VSCode extensions. CodeRabbit analyzes code changes, generates intelligent comments, and provides comprehensive review summaries using advanced AI models.
-
+ 
+> DISCLAIMER: This project is NOT affiliated with, endorsed by, or connected to
+> CodeRabbit AI or any of its services.
+ 
 ## 🚀 Features
 
 - **AI-Powered Code Reviews**: Intelligent analysis using Google Gemini, OpenAI GPT models
